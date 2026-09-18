@@ -34,6 +34,10 @@ CARDS = [
     ("Company Hiring Velocity", "table", "SELECT company, jobs_active, jobs_new FROM company_hiring WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM company_hiring) ORDER BY jobs_new DESC, jobs_active DESC LIMIT 20"),
     ("Title Mix (latest)", "table", "SELECT title_canonical, job_count FROM title_trend WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM title_trend) ORDER BY job_count DESC LIMIT 20"),
     ("Salary Benchmarks", "table", "SELECT title, seniority, n, avg_min, avg_max, min_salary, max_salary FROM salary_benchmark ORDER BY n DESC"),
+    ("Skill Bank Size", "scalar", "SELECT COUNT(*) AS value FROM skills"),
+    ("Skills by Category", "bar", "SELECT COALESCE(category, 'uncategorized') AS category, COUNT(*) AS count FROM skills GROUP BY 1 ORDER BY 2 DESC"),
+    ("New Skill Candidates", "table", "SELECT term, frequency FROM new_skill_candidates ORDER BY frequency DESC LIMIT 25"),
+    ("Portal Catalog", "table", "SELECT name, type, priority, scraping_method, api, salary_data FROM portals ORDER BY priority, name"),
 ]
 
 
