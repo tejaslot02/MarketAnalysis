@@ -269,6 +269,7 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-jobs}
+      DRAGONFLY_URL: redis://dragonfly:6379/0
       EMBEDDING_DIM: ${EMBEDDING_DIM:-1536}
     ports:
       - "8000:8000"

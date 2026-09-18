@@ -25,10 +25,14 @@ from prometheus_client import (
     generate_latest,
 )
 
+import redis
+
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql+psycopg2://postgres:postgres@localhost:5432/jobs",
 )
+
+DRAGONFLY_URL = os.getenv("DRAGONFLY_URL", "redis://dragonfly:6379/0")
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True, future=True)
 
@@ -165,6 +169,8 @@ def metrics() -> Response:
     companies = Gauge("etl_companies_total", "Companies in master data", registry=registry)
     portal_runs = Gauge("etl_portal_runs_total", "Portal scrape runs by portal and status", ["portal", "status"], registry=registry)
     portal_last_success = Gauge("etl_portal_last_success_timestamp_seconds", "Last successful portal run (unix seconds)", ["portal"], registry=registry)
+    stream_backlog = Gauge("etl_stream_backlog", "Raw-jobs stream backlog (XLEN)", registry=registry)
+    stream_pending = Gauge("etl_stream_pending", "Raw-jobs stream pending messages (XPENDING)", registry=registry)
 
     try:
         with engine.connect() as conn:
@@ -178,6 +184,16 @@ def metrics() -> Response:
                 if row["t"] is not None:
                     portal_last_success.labels(portal=row["portal"]).set(row["t"].timestamp())
     except SQLAlchemyError:
+        pass
+
+    try:
+        r = redis.Redis.from_url(DRAGONFLY_URL, decode_responses=True)
+        stream_backlog.set(int(r.xlen("raw-jobs") or 0))
+        p = r.xpending("raw-jobs", "jobs-ingest")
+        if isinstance(p, dict) and "pending" in p:
+            stream_pending.set(int(p["pending"]))
+        r.close()
+    except Exception:
         pass
 
     return Response(content=generate_latest(registry), media_type=CONTENT_TYPE_LATEST)

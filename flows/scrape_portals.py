@@ -115,16 +115,16 @@ async def scrape_portals_flow() -> list[dict[str, Any]]:
             rc, out, err = -1, "", str(exc)
         jobs = ((out or "") + (err or "")).count("XADD")  # Scrapy logs to stderr
         status = "success" if rc == 0 else "error"
-        results.append(
-            {
-                "portal": name,
-                "started": started,
-                "finished": time.time(),
-                "status": status,
-                "jobs": jobs,
-                "error": err or None,
-            }
-        )
+        result = {
+            "portal": name,
+            "started": started,
+            "finished": time.time(),
+            "status": status,
+            "jobs": jobs,
+            "error": err or None,
+        }
+        results.append(result)
+        await _persist_runs(engine, [result])  # live observability: write per-spider
         logger.info("[%s] %s args=%s jobs=%d (%.1fs)", status, name, args, jobs, time.time() - started)
         if rc != 0:
             logger.error("stderr tail: %s", (err or "")[-1000:])
