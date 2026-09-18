@@ -29,6 +29,11 @@ CARDS = [
     ("Companies Tracked", "scalar", "SELECT COUNT(*) AS value FROM companies"),
     ("New Jobs Last 7 Days", "scalar", "SELECT COUNT(*) AS value FROM jobs WHERE first_seen_at >= now() - interval '7 days'"),
     ("Jobs by Track", "bar", "SELECT COALESCE(t.track, 'unclassified') AS track, COUNT(*) AS count FROM jobs j LEFT JOIN job_titles t ON t.canonical = j.title_canonical GROUP BY 1 ORDER BY 2 DESC"),
+    ("Skill Momentum", "table", "SELECT skill, first_count, latest_count, delta, pct_change FROM skill_momentum WHERE pct_change IS NOT NULL ORDER BY delta DESC LIMIT 20"),
+    ("Top Skills (latest)", "table", "SELECT skill, job_count FROM skill_trend WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM skill_trend) ORDER BY job_count DESC LIMIT 25"),
+    ("Company Hiring Velocity", "table", "SELECT company, jobs_active, jobs_new FROM company_hiring WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM company_hiring) ORDER BY jobs_new DESC, jobs_active DESC LIMIT 20"),
+    ("Title Mix (latest)", "table", "SELECT title_canonical, job_count FROM title_trend WHERE snapshot_date = (SELECT MAX(snapshot_date) FROM title_trend) ORDER BY job_count DESC LIMIT 20"),
+    ("Salary Benchmarks", "table", "SELECT title, seniority, n, avg_min, avg_max, min_salary, max_salary FROM salary_benchmark ORDER BY n DESC"),
 ]
 
 
@@ -86,8 +91,17 @@ def main():
     else:
         print(f"[database] exists id={db_id}")
 
+    existing_names = set()
+    st, existing = req("GET", "/api/card?f=all", session=session)
+    for c in (existing or []):
+        if isinstance(c, dict) and c.get("name"):
+            existing_names.add(c["name"])
+
     card_ids = []
     for name, display, query in CARDS:
+        if name in existing_names:
+            print(f"[card] '{name}' exists, skip")
+            continue
         st, card = req("POST", "/api/card", {
             "name": name,
             "dataset_query": {"database": db_id, "type": "native", "native": {"query": query, "template-tags": {}}},
@@ -98,14 +112,37 @@ def main():
         card_ids.append(cid)
         print(f"[card] '{name}' id={cid} status={st}")
 
-    st, dash = req("POST", "/api/dashboard", {"name": "DS/AI/ML Job Market"}, session=session)
-    dash_id = dash.get("id") if isinstance(dash, dict) else None
-    print(f"[dashboard] id={dash_id} status={st}")
+    dash_id = None
+    st, dashboards = req("GET", "/api/dashboard", session=session)
+    for d in (dashboards or []):
+        if isinstance(d, dict) and d.get("name") == "DS/AI/ML Job Market":
+            dash_id = d.get("id")
+            break
+    if dash_id is None:
+        st, dash = req("POST", "/api/dashboard", {"name": "DS/AI/ML Job Market"}, session=session)
+        dash_id = dash.get("id") if isinstance(dash, dict) else None
+        print(f"[dashboard] created id={dash_id} status={st}")
+    else:
+        print(f"[dashboard] exists id={dash_id}")
 
-    for cid in card_ids:
+    # Metabase v0.49 removed POST /api/dashboard/:id/cards; use PUT to set the
+    # full ordered card layout (idempotent: rebuild the list from card names).
+    st, all_cards = req("GET", "/api/card?f=all", session=session)
+    name_to_id = {}
+    for c in (all_cards or []):
+        if isinstance(c, dict) and c.get("name"):
+            name_to_id[c["name"]] = c.get("id")
+
+    layout = []
+    col = 0
+    for i, (name, _display, _query) in enumerate(CARDS, start=1):
+        cid = name_to_id.get(name)
         if cid:
-            st, _ = req("POST", f"/api/dashboard/{dash_id}/cards", {"cardId": cid}, session=session)
-            print(f"[dashboard] added card {cid} status={st}")
+            # Metabase v0.49 schema: negative id = new dashcard; card_id = card id.
+            layout.append({"id": -i, "card_id": cid, "size_x": 4, "size_y": 4, "row": 0, "col": col})
+            col += 4
+    st, _ = req("PUT", f"/api/dashboard/{dash_id}/cards", {"cards": layout}, session=session)
+    print(f"[dashboard] set {len(layout)} cards status={st}")
 
     print(f"\nDONE. Dashboard URL: {BASE}/dashboard/{dash_id}")
     print(f"Login: {EMAIL} / {PASSWORD}")

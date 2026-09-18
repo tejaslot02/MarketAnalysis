@@ -209,6 +209,7 @@ services:
       SEED_CRON: "${SEED_CRON:-30 6 * * *}"
       CONSUME_INTERVAL_SECONDS: "${CONSUME_INTERVAL_SECONDS:-1800}"
       SCHEDULE_TIMEZONE: "${SCHEDULE_TIMEZONE:-America/New_York}"
+      SNAPSHOT_CRON: "${SNAPSHOT_CRON:-30 8 * * *}"
     volumes:
       - ./flows:/opt/prefect/flows:ro
       - ./scrapers:/opt/prefect/scrapers:ro
