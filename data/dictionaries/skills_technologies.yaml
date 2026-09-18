@@ -1,0 +1,144 @@
+# Skills and technologies for matching 150K+ DS/AI/ML roles.
+# weight (0-10): importance for confirming a 150K+ senior role. Higher = stronger signal.
+# aliases: alternate spellings/case used in raw job text (matched case-insensitively).
+
+version: "1.0"
+
+skills:
+  programming_languages:
+    - { name: Python, aliases: [python, py], weight: 9 }
+    - { name: SQL, aliases: [sql, postgresql, t-sql], weight: 8 }
+    - { name: R, aliases: [r, rstats], weight: 4 }
+    - { name: Scala, aliases: [scala], weight: 5 }
+    - { name: Java, aliases: [java], weight: 4 }
+    - { name: C++, aliases: [c++, cpp], weight: 4 }
+    - { name: Go, aliases: [go, golang], weight: 3 }
+    - { name: Rust, aliases: [rust], weight: 3 }
+    - { name: Bash, aliases: [bash, shell scripting], weight: 3 }
+
+  ml_dl_frameworks:
+    - { name: PyTorch, aliases: [pytorch, torch], weight: 9 }
+    - { name: TensorFlow, aliases: [tensorflow, tf], weight: 7, first_seen_note: "Declining vs PyTorch but still common in production systems" }
+    - { name: JAX, aliases: [jax, flax], weight: 5, first_seen_note: "Common in research-heavy roles" }
+    - { name: Hugging Face Transformers, aliases: [hugging face, transformers, hf transformers], weight: 9 }
+    - { name: scikit-learn, aliases: [scikit-learn, sklearn], weight: 7 }
+    - { name: XGBoost, aliases: [xgboost], weight: 7 }
+    - { name: LightGBM, aliases: [lightgbm], weight: 7 }
+    - { name: Keras, aliases: [keras], weight: 5 }
+    - { name: ONNX, aliases: [onnx], weight: 5 }
+    - { name: TensorRT, aliases: [tensorrt], weight: 4 }
+
+  llm_genai_stack:
+    - { name: LangChain, aliases: [langchain], weight: 8 }
+    - { name: LlamaIndex, aliases: [llamaindex, llama index], weight: 7 }
+    - { name: vLLM, aliases: [vllm], weight: 6 }
+    - { name: Ray, aliases: [ray, ray serve], weight: 6 }
+    - { name: DeepSpeed, aliases: [deepspeed], weight: 5 }
+    - { name: OpenAI API, aliases: [openai, gpt-4, chatgpt api], weight: 8 }
+    - { name: Anthropic Claude, aliases: [anthropic, claude], weight: 7 }
+    - { name: Google Gemini, aliases: [gemini, vertex ai gemini], weight: 6 }
+    - { name: Llama, aliases: [llama, llama 2, llama 3, meta llama], weight: 7 }
+    - { name: Mistral, aliases: [mistral, mixtral], weight: 6 }
+    - { name: RAG, aliases: [rag, retrieval-augmented generation, retrieval augmented generation], weight: 8 }
+    - { name: Prompt Engineering, aliases: [prompt engineering, prompt design], weight: 5 }
+    - { name: Embeddings, aliases: [embeddings, sentence embeddings, text embeddings], weight: 8 }
+    - { name: LoRA, aliases: [lora, qlora, peft], weight: 5, first_seen_note: "Parameter-efficient fine-tuning signal for LLM-heavy roles" }
+
+  data_engineering:
+    - { name: Apache Spark, aliases: [spark, pyspark, spark sql], weight: 8 }
+    - { name: Apache Flink, aliases: [flink], weight: 5 }
+    - { name: Dagster, aliases: [dagster], weight: 4 }
+    - { name: dbt, aliases: [dbt, data build tool], weight: 5 }
+    - { name: Databricks, aliases: [databricks], weight: 7 }
+    - { name: Snowflake, aliases: [snowflake], weight: 7 }
+    - { name: Google BigQuery, aliases: [bigquery], weight: 7 }
+    - { name: Amazon Redshift, aliases: [redshift], weight: 6 }
+    - { name: dlt, aliases: [dlt, data load tool], weight: 3 }
+    - { name: Airbyte, aliases: [airbyte], weight: 4 }
+    - { name: Hadoop, aliases: [hadoop, hdfs, hive], weight: 4, first_seen_note: "Legacy but still present in enterprise stacks" }
+
+  storage_databases:
+    - { name: PostgreSQL, aliases: [postgresql, postgres], weight: 7 }
+    - { name: MySQL, aliases: [mysql], weight: 4 }
+    - { name: MongoDB, aliases: [mongodb], weight: 5 }
+    - { name: Redis, aliases: [redis], weight: 5 }
+    - { name: Elasticsearch, aliases: [elasticsearch, elastic, opensearch], weight: 6 }
+    - { name: Pinecone, aliases: [pinecone], weight: 6 }
+    - { name: Milvus, aliases: [milvus], weight: 5 }
+    - { name: Weaviate, aliases: [weaviate], weight: 5 }
+    - { name: Qdrant, aliases: [qdrant], weight: 4 }
+    - { name: pgvector, aliases: [pgvector], weight: 6 }
+    - { name: Chroma, aliases: [chroma, chromadb], weight: 4 }
+    - { name: Amazon S3, aliases: [s3, amazon s3], weight: 7 }
+    - { name: Delta Lake, aliases: [delta lake, databricks delta], weight: 6 }
+    - { name: Iceberg, aliases: [apache iceberg, iceberg], weight: 5 }
+
+  mlops:
+    - { name: Docker, aliases: [docker, dockerfile], weight: 8 }
+    - { name: Kubernetes, aliases: [kubernetes, k8s, eks, gke, aks], weight: 8 }
+    - { name: MLflow, aliases: [mlflow], weight: 7 }
+    - { name: Kubeflow, aliases: [kubeflow], weight: 5 }
+    - { name: Weights & Biases, aliases: [weights & biases, wandb, weights and biases], weight: 6 }
+    - { name: DVC, aliases: [dvc, data version control], weight: 5 }
+    - { name: Seldon, aliases: [seldon, seldon core], weight: 4 }
+    - { name: BentoML, aliases: [bentoml], weight: 4 }
+    - { name: NVIDIA Triton, aliases: [triton, nvidia triton, triton inference server], weight: 4 }
+    - { name: Amazon SageMaker, aliases: [sagemaker, aws sagemaker], weight: 7 }
+    - { name: Vertex AI, aliases: [vertex ai, google vertex], weight: 6 }
+    - { name: Azure ML, aliases: [azure ml, azure machine learning], weight: 6 }
+    - { name: Terraform, aliases: [terraform, iac], weight: 5 }
+    - { name: CI/CD, aliases: [ci/cd, github actions, gitlab ci, jenkins], weight: 6 }
+
+  cloud_platforms:
+    - { name: AWS, aliases: [aws, amazon web services], weight: 9 }
+    - { name: Google Cloud, aliases: [gcp, google cloud platform], weight: 8 }
+    - { name: Azure, aliases: [azure, microsoft azure], weight: 7 }
+
+  monitoring_observability:
+    - { name: Prometheus, aliases: [prometheus], weight: 5 }
+    - { name: Grafana, aliases: [grafana], weight: 5 }
+    - { name: Datadog, aliases: [datadog], weight: 5 }
+    - { name: Evidently AI, aliases: [evidently, evidently ai], weight: 4 }
+    - { name: Arize AI, aliases: [arize], weight: 4 }
+    - { name: WhyLabs, aliases: [whylabs, whylogs], weight: 4 }
+    - { name: Great Expectations, aliases: [great expectations, gx], weight: 4 }
+
+  visualization_bi:
+    - { name: Tableau, aliases: [tableau], weight: 5 }
+    - { name: Power BI, aliases: [power bi, powerbi], weight: 4 }
+    - { name: Looker, aliases: [looker, looker studio], weight: 5 }
+    - { name: Metabase, aliases: [metabase], weight: 4 }
+    - { name: Streamlit, aliases: [streamlit], weight: 4 }
+    - { name: Plotly, aliases: [plotly, dash], weight: 4 }
+    - { name: Matplotlib, aliases: [matplotlib], weight: 4 }
+    - { name: Seaborn, aliases: [seaborn], weight: 4 }
+
+  experimentation_statistics:
+    - { name: A/B Testing, aliases: [a/b testing, ab testing, experimentation], weight: 8 }
+    - { name: Causal Inference, aliases: [causal inference, causal ml, uplift modeling], weight: 6 }
+    - { name: Hypothesis Testing, aliases: [hypothesis testing, significance testing, p-value], weight: 6 }
+    - { name: Bayesian Methods, aliases: [bayesian, bayes, mcmc, pymc, stan], weight: 5 }
+    - { name: Statistics, aliases: [statistics, statistical modeling, econometrics], weight: 7 }
+
+  domain_specializations:
+    nlp:
+      - { name: Transformers, aliases: [transformers, transformer model, attention mechanism], weight: 8 }
+      - { name: spaCy, aliases: [spacy], weight: 5 }
+      - { name: NLTK, aliases: [nltk], weight: 3 }
+      - { name: BERT, aliases: [bert, roberta, deberta], weight: 6 }
+      - { name: Named Entity Recognition, aliases: [ner, named entity recognition], weight: 5 }
+    cv:
+      - { name: OpenCV, aliases: [opencv, cv2], weight: 6 }
+      - { name: YOLO, aliases: [yolo, yolov8], weight: 5 }
+      - { name: Detection/Segmentation, aliases: [object detection, image segmentation, semantic segmentation], weight: 5 }
+      - { name: Diffusion Models, aliases: [diffusion, stable diffusion, latent diffusion], weight: 6 }
+    recommender_systems:
+      - { name: Recommender Systems, aliases: [recommender systems, recommendation system, collaborative filtering], weight: 6 }
+      - { name: Ranking, aliases: [learning to rank, ranking models, personalization], weight: 6 }
+      - { name: Two-Tower Models, aliases: [two-tower, dual encoder], weight: 4 }
+    forecasting:
+      - { name: Time Series, aliases: [time series, forecasting, prophet, arima], weight: 6 }
+    anomaly_detection:
+      - { name: Anomaly Detection, aliases: [anomaly detection, outlier detection, fraud detection], weight: 5 }
+    reinforcement_learning:
+      - { name: Reinforcement Learning, aliases: [reinforcement learning, rl, rlhf], weight: 5 }

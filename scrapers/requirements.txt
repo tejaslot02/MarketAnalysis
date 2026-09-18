@@ -1,0 +1,9 @@
+scrapy==2.11.2
+requests==2.32.3
+beautifulsoup4==4.12.3
+lxml==5.2.2
+python-dateutil==2.9.0.post0
+PyYAML==6.0.1
+redis==5.0.8
+minio==7.2.7
+Twisted==23.10.0

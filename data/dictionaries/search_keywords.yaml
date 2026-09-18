@@ -1,0 +1,162 @@
+# Search keywords and ready-to-paste boolean strings for 150K+ remote DS/AI/ML roles.
+# primary_terms / signals are tokens; boolean_search_queries are paste-ready strings
+# (quote multi-word terms where required). Tested on LinkedIn/Indeed boolean syntax.
+
+version: "1.0"
+
+primary_terms:
+  - data scientist
+  - machine learning engineer
+  - ml engineer
+  - ai engineer
+  - applied scientist
+  - research scientist
+  - research engineer
+  - deep learning
+  - computer vision
+  - nlp engineer
+  - llm engineer
+  - generative ai
+  - genai
+  - mlops
+  - ml platform
+  - ml infrastructure
+  - data engineer
+  - analytics engineer
+  - ai architect
+  - prompt engineer
+
+salary_signals:
+  - $150,000
+  - $150k
+  - $160,000
+  - $170,000
+  - $180,000
+  - $200,000
+  - $250,000
+  - 200k
+  - 150k
+  - total compensation
+  - base salary
+  - competitive salary
+  - equity
+  - stock options
+  - rsu
+  - sign-on bonus
+
+remote_signals:
+  - remote
+  - fully remote
+  - us remote
+  - remote - united states
+  - work from home
+  - wfh
+  - distributed team
+  - remote first
+  - anywhere in the us
+  - home office
+
+seniority_signals:
+  - senior
+  - staff
+  - principal
+  - lead
+  - manager
+  - director
+  - head of
+  - vp of
+  - chief
+  - 5+ years
+  - 7+ years
+  - 10+ years
+  - 8+ years
+  - experienced
+
+# Tokens that strongly indicate a technical 150K+ ML role.
+tech_skills_tokens:
+  - pytorch
+  - tensorflow
+  - jax
+  - transformers
+  - hugging face
+  - langchain
+  - llamaindex
+  - rag
+  - llm
+  - gpt
+  - claude
+  - gemini
+  - kubernetes
+  - docker
+  - spark
+  - databricks
+  - snowflake
+  - mlflow
+  - sagemaker
+  - vertex ai
+  - azure ml
+  - pgvector
+  - vector database
+  - fine-tuning
+  - model serving
+
+negative_filters:
+  - junior
+  - internship
+  - intern
+  - entry level
+  - entry-level
+  - new grad
+  - new graduate
+  - under 100k
+  - under $100,000
+  - unpaid
+  - volunteer
+  - part-time
+  - part time
+  - contract  # note: contract can be 150K+; exclude only if seeking FTE
+  - c2c  # corp-to-corp; exclude if seeking W2 FTE
+  - hybrid
+  - onsite
+  - on-site
+  - must be in
+  - must reside in  # excludes "anywhere" roles; remove if open to state-restricted remote
+
+# Ready-to-paste boolean strings (LinkedIn/Indeed syntax).
+# LinkedIn: quotes for phrases, OR between alternates, parentheses for grouping,
+# NOT for exclusions. Indeed: same, plus (title:...) search qualifiers.
+boolean_search_queries:
+  - name: senior_ic_ml_roles
+    platform: linkedin
+    query: '("machine learning engineer" OR "ml engineer" OR "ai engineer" OR "applied scientist") AND (senior OR staff OR principal OR lead) AND (remote OR "fully remote" OR "us remote") NOT (junior OR internship OR intern OR "entry level")'
+  - name: senior_ds_roles
+    platform: linkedin
+    query: '("data scientist" OR "data science") AND (senior OR staff OR principal) AND (remote OR "fully remote") AND (python OR pytorch OR "machine learning") NOT (junior OR intern OR internship)'
+  - name: llm_genai_roles
+    platform: linkedin
+    query: '("llm" OR "large language model" OR "generative ai" OR genai OR "rag" OR "prompt engineer") AND (senior OR staff OR principal OR lead) AND (remote OR "us remote") NOT (junior OR intern)'
+  - name: mlops_platform_roles
+    platform: linkedin
+    query: '("mlops" OR "ml platform" OR "ml infrastructure" OR "machine learning engineer") AND (kubernetes OR docker OR mlflow OR sagemaker OR "vertex ai") AND (senior OR staff OR lead) AND remote'
+  - name: data_eng_roles
+    platform: linkedin
+    query: '("data engineer" OR "analytics engineer") AND (spark OR databricks OR snowflake) AND (senior OR staff OR lead) AND (remote OR "us remote") NOT junior'
+  - name: research_roles
+    platform: linkedin
+    query: '("research scientist" OR "research engineer" OR "applied scientist") AND (deep learning OR pytorch OR jax OR transformers) AND (remote OR "fully remote") NOT (junior OR intern)'
+  - name: leadership_roles
+    platform: linkedin
+    query: '("data science manager" OR "director of data science" OR "head of ai" OR "head of data" OR "vp of ai" OR "director of ml engineering") AND (remote OR "us remote")'
+  - name: salary_signal_combined
+    platform: indeed
+    query: '(title:(data scientist OR "machine learning engineer" OR "ai engineer")) AND ($150,000 OR $160,000 OR $180,000 OR $200,000 OR 150k OR 200k) AND (remote OR "work from home") NOT (junior OR intern)'
+  - name: broad_remote_ml
+    platform: indeed
+    query: '(title:(machine learning OR "data science" OR "artificial intelligence" OR ai)) AND (remote OR "fully remote") AND (senior OR staff OR principal) AND (python OR pytorch OR spark) NOT (junior OR internship)'
+
+usage_notes:
+  - "LinkedIn truncates long boolean queries; split into multiple saved searches if needed."
+  - "Indeed supports the title:(...) qualifier; LinkedIn does not."
+  - "Add salary signals only on boards that index salary text; LinkedIn/Indeed do so inconsistently."
+  - "Use negative_filters to post-process results, not just in the query — many postings omit 'junior' in searchable text."
+  - "Remote signals: 'remote' alone matches 'hybrid remote'; prefer 'fully remote' or 'us remote' and re-verify."

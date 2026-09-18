@@ -1,0 +1,332 @@
+# Job titles for remote 150K+ DS/AI/ML roles, grouped by track and seniority.
+# Salary bands are US base-salary ranges (annual USD). Total comp (base+bonus+equity)
+# is typically 20-50% higher at staff+ levels. Bands are guidance, not guarantees.
+
+version: "1.0"
+
+meta:
+  market: "United States (remote)"
+  currency: USD
+  band_type: "annual base salary"
+  note: "Bands represent typical market ranges for 150K+ roles as of 2024-2025. Adjust for company stage and location."
+
+titles:
+  # ================================================================ IC TRACK
+  - canonical: Data Scientist
+    track: individual_contributor
+    synonyms:
+      - Data Scientist
+      - DS
+      - Senior Data Scientist
+      - Staff Data Scientist
+      - Principal Data Scientist
+      - Data Science Generalist
+    seniority_levels:
+      mid: { band: [120000, 155000] }
+      senior: { band: [150000, 190000] }
+      staff: { band: [180000, 230000] }
+      principal: { band: [220000, 280000] }
+
+  - canonical: Machine Learning Engineer
+    track: individual_contributor
+    synonyms:
+      - Machine Learning Engineer
+      - MLE
+      - Senior ML Engineer
+      - Staff ML Engineer
+      - Principal ML Engineer
+      - ML Systems Engineer
+    seniority_levels:
+      mid: { band: [130000, 165000] }
+      senior: { band: [160000, 200000] }
+      staff: { band: [190000, 240000] }
+      principal: { band: [230000, 290000] }
+
+  - canonical: AI Engineer
+    track: individual_contributor
+    synonyms:
+      - AI Engineer
+      - Applied AI Engineer
+      - Senior AI Engineer
+      - Generative AI Engineer
+    seniority_levels:
+      mid: { band: [125000, 160000] }
+      senior: { band: [155000, 195000] }
+      staff: { band: [185000, 235000] }
+      principal: { band: [225000, 285000] }
+
+  - canonical: Applied Scientist
+    track: individual_contributor
+    synonyms:
+      - Applied Scientist
+      - Applied Science Engineer
+      - Senior Applied Scientist
+      - Principal Applied Scientist
+    seniority_levels:
+      mid: { band: [140000, 180000] }
+      senior: { band: [170000, 220000] }
+      staff: { band: [200000, 260000] }
+      principal: { band: [250000, 320000] }
+
+  - canonical: Deep Learning Engineer
+    track: individual_contributor
+    synonyms:
+      - Deep Learning Engineer
+      - Senior Deep Learning Engineer
+      - Neural Network Engineer
+    seniority_levels:
+      mid: { band: [130000, 165000] }
+      senior: { band: [160000, 200000] }
+      staff: { band: [190000, 240000] }
+      principal: { band: [230000, 290000] }
+
+  - canonical: Computer Vision Engineer
+    track: individual_contributor
+    synonyms:
+      - Computer Vision Engineer
+      - CV Engineer
+      - Senior CV Engineer
+      - Vision ML Engineer
+    seniority_levels:
+      mid: { band: [130000, 165000] }
+      senior: { band: [160000, 200000] }
+      staff: { band: [190000, 240000] }
+      principal: { band: [230000, 285000] }
+
+  - canonical: NLP Engineer
+    track: individual_contributor
+    synonyms:
+      - NLP Engineer
+      - Natural Language Processing Engineer
+      - Senior NLP Engineer
+      - NLP ML Engineer
+    seniority_levels:
+      mid: { band: [130000, 165000] }
+      senior: { band: [160000, 200000] }
+      staff: { band: [190000, 240000] }
+      principal: { band: [230000, 285000] }
+
+  - canonical: LLM Engineer
+    track: individual_contributor
+    synonyms:
+      - LLM Engineer
+      - Large Language Model Engineer
+      - Senior LLM Engineer
+      - LLM Applications Engineer
+    seniority_levels:
+      mid: { band: [140000, 180000] }
+      senior: { band: [170000, 220000] }
+      staff: { band: [200000, 260000] }
+      principal: { band: [250000, 320000] }
+
+  - canonical: GenAI Engineer
+    track: individual_contributor
+    synonyms:
+      - GenAI Engineer
+      - Generative AI Engineer
+      - Senior Generative AI Engineer
+      - Gen AI Engineer
+    seniority_levels:
+      mid: { band: [140000, 180000] }
+      senior: { band: [170000, 220000] }
+      staff: { band: [200000, 260000] }
+      principal: { band: [250000, 320000] }
+
+  - canonical: Prompt Engineer
+    track: individual_contributor
+    synonyms:
+      - Prompt Engineer
+      - Senior Prompt Engineer
+      - LLM Prompt Engineer
+      - Prompt Engineering Lead
+    seniority_levels:
+      mid: { band: [110000, 140000] }
+      senior: { band: [140000, 180000] }
+      staff: { band: [170000, 210000] }
+      principal: { band: [200000, 250000] }
+
+  # ================================================================ MLOPS / PLATFORM
+  - canonical: MLOps Engineer
+    track: mlops_platform
+    synonyms:
+      - MLOps Engineer
+      - ML Operations Engineer
+      - Senior MLOps Engineer
+      - Staff MLOps Engineer
+    seniority_levels:
+      mid: { band: [130000, 165000] }
+      senior: { band: [160000, 200000] }
+      staff: { band: [190000, 240000] }
+      principal: { band: [230000, 285000] }
+
+  - canonical: ML Platform Engineer
+    track: mlops_platform
+    synonyms:
+      - ML Platform Engineer
+      - Machine Learning Platform Engineer
+      - Senior ML Platform Engineer
+      - Staff ML Platform Engineer
+    seniority_levels:
+      mid: { band: [140000, 175000] }
+      senior: { band: [165000, 210000] }
+      staff: { band: [195000, 245000] }
+      principal: { band: [235000, 295000] }
+
+  - canonical: ML Infrastructure Engineer
+    track: mlops_platform
+    synonyms:
+      - ML Infrastructure Engineer
+      - ML Infra Engineer
+      - Senior ML Infrastructure Engineer
+      - GPU Infrastructure Engineer
+    seniority_levels:
+      mid: { band: [140000, 175000] }
+      senior: { band: [165000, 210000] }
+      staff: { band: [195000, 245000] }
+      principal: { band: [235000, 300000] }
+
+  - canonical: Data Engineer
+    track: mlops_platform
+    synonyms:
+      - Data Engineer
+      - Senior Data Engineer
+      - Staff Data Engineer
+      - Principal Data Engineer
+      - Big Data Engineer
+    seniority_levels:
+      mid: { band: [125000, 160000] }
+      senior: { band: [155000, 195000] }
+      staff: { band: [185000, 235000] }
+      principal: { band: [225000, 280000] }
+
+  - canonical: Analytics Engineer
+    track: mlops_platform
+    synonyms:
+      - Analytics Engineer
+      - Senior Analytics Engineer
+      - Data Analytics Engineer
+    seniority_levels:
+      mid: { band: [115000, 150000] }
+      senior: { band: [145000, 185000] }
+      staff: { band: [175000, 220000] }
+      principal: { band: [210000, 260000] }
+
+  - canonical: AI Solutions Architect
+    track: mlops_platform
+    synonyms:
+      - AI Solutions Architect
+      - ML Solutions Architect
+      - Senior AI Solutions Architect
+      - Generative AI Solutions Architect
+    seniority_levels:
+      mid: { band: [140000, 175000] }
+      senior: { band: [165000, 210000] }
+      staff: { band: [195000, 245000] }
+      principal: { band: [235000, 290000] }
+
+  # ================================================================ RESEARCH
+  - canonical: ML Research Scientist
+    track: research
+    synonyms:
+      - Research Scientist
+      - Machine Learning Research Scientist
+      - Senior Research Scientist
+      - Staff Research Scientist
+    seniority_levels:
+      mid: { band: [160000, 210000] }
+      senior: { band: [200000, 260000] }
+      staff: { band: [250000, 320000] }
+      principal: { band: [300000, 400000] }
+
+  - canonical: Research Engineer
+    track: research
+    synonyms:
+      - Research Engineer
+      - ML Research Engineer
+      - Senior Research Engineer
+      - AI Research Engineer
+    seniority_levels:
+      mid: { band: [140000, 180000] }
+      senior: { band: [170000, 220000] }
+      staff: { band: [200000, 260000] }
+      principal: { band: [250000, 320000] }
+
+  # ================================================================ LEADERSHIP
+  - canonical: Data Science Manager
+    track: leadership
+    synonyms:
+      - Data Science Manager
+      - Manager Data Science
+      - DS Manager
+      - ML Manager
+    seniority_levels:
+      manager: { band: [180000, 230000] }
+      director: { band: [220000, 290000] }
+      vp: { band: [280000, 380000] }
+
+  - canonical: Director of Data Science
+    track: leadership
+    synonyms:
+      - Director of Data Science
+      - Director Data Science
+      - Senior Director of Data Science
+      - Data Science Director
+    seniority_levels:
+      director: { band: [220000, 300000] }
+      vp: { band: [300000, 400000] }
+
+  - canonical: Head of AI
+    track: leadership
+    synonyms:
+      - Head of AI
+      - Head of Artificial Intelligence
+      - AI Lead
+      - Head of ML
+    seniority_levels:
+      director: { band: [230000, 310000] }
+      vp: { band: [300000, 420000] }
+      c_level: { band: [380000, 550000] }
+
+  - canonical: Director of ML Engineering
+    track: leadership
+    synonyms:
+      - Director of ML Engineering
+      - Director Machine Learning Engineering
+      - Senior Director ML Engineering
+      - ML Engineering Director
+    seniority_levels:
+      director: { band: [230000, 310000] }
+      vp: { band: [300000, 420000] }
+
+  - canonical: VP of AI
+    track: leadership
+    synonyms:
+      - VP of AI
+      - Vice President of AI
+      - VP Artificial Intelligence
+      - VP of Machine Learning
+    seniority_levels:
+      vp: { band: [300000, 450000] }
+      c_level: { band: [400000, 600000] }
+
+  - canonical: Chief AI Officer
+    track: leadership
+    synonyms:
+      - Chief AI Officer
+      - CAIO
+      - Chief AI Scientist
+      - Chief Data Officer
+    seniority_levels:
+      c_level: { band: [400000, 700000] }
+
+  - canonical: Head of Data
+    track: leadership
+    synonyms:
+      - Head of Data
+      - Head of Data Science
+      - Director of Data
+      - Chief Data Officer
+    seniority_levels:
+      director: { band: [220000, 300000] }
+      vp: { band: [290000, 400000] }
+      c_level: { band: [380000, 550000] }

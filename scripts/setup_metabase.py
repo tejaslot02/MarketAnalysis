@@ -1,0 +1,109 @@
+"""Provision Metabase: admin user, Postgres data source, cards, and a dashboard.
+
+Run inside a container on the jobs-net network:
+    docker compose exec -T prefect-worker python - < scripts/setup_metabase.py
+"""
+from __future__ import annotations
+
+import json
+import os
+import urllib.error
+import urllib.request
+
+BASE = os.getenv("METABASE_URL", "http://metabase:3000")
+EMAIL = os.getenv("METABASE_ADMIN_EMAIL", "admin@example.com")
+PASSWORD = os.getenv("METABASE_ADMIN_PASSWORD", "admin12345")
+
+CARDS = [
+    ("Total Jobs", "scalar", "SELECT COUNT(*) AS value FROM jobs"),
+    ("Above 150K", "scalar", "SELECT COUNT(*) AS value FROM jobs WHERE salary_ok"),
+    ("Remote Jobs", "scalar", "SELECT COUNT(*) AS value FROM jobs WHERE is_remote"),
+    ("Jobs by Title", "bar", "SELECT COALESCE(title_canonical, 'Unclassified') AS title, COUNT(*) AS count FROM jobs GROUP BY 1 ORDER BY 2 DESC"),
+    ("Jobs by Seniority", "pie", "SELECT COALESCE(seniority, 'unknown') AS seniority, COUNT(*) AS count FROM jobs GROUP BY 1 ORDER BY 2 DESC"),
+    ("Jobs by Source", "bar", "SELECT source, COUNT(*) AS count FROM jobs GROUP BY 1 ORDER BY 2 DESC"),
+    ("Top Skills", "bar", "SELECT s->>'name' AS skill, COUNT(*) AS count FROM jobs, jsonb_array_elements(skills) AS s GROUP BY 1 ORDER BY 2 DESC LIMIT 20"),
+    ("150K+ Remote Jobs", "table", "SELECT title, company, title_canonical, seniority, salary_min, salary_max, url FROM jobs WHERE salary_ok AND is_remote ORDER BY salary_max DESC NULLS LAST"),
+]
+
+
+def req(method, path, data=None, session=None):
+    url = BASE + path
+    body = json.dumps(data).encode() if data is not None else None
+    r = urllib.request.Request(url, data=body, method=method)
+    r.add_header("Content-Type", "application/json")
+    if session:
+        r.add_header("X-Metabase-Session", session)
+    try:
+        with urllib.request.urlopen(r, timeout=60) as resp:
+            txt = resp.read().decode() or "{}"
+            return resp.status, json.loads(txt)
+    except urllib.error.HTTPError as e:
+        return e.code, e.read().decode()[:400]
+
+
+def main():
+    _, props = req("GET", "/api/session/properties")
+
+    if not props.get("has-user-setup"):
+        st, out = req("POST", "/api/setup", {
+            "token": props.get("setup-token"),
+            "user": {"first_name": "Admin", "last_name": "User", "email": EMAIL, "password": PASSWORD},
+            "prefs": {"site_name": "Job Search", "site_locale": "en", "allow_tracking": False},
+        })
+        print(f"[setup] admin created status={st}")
+    else:
+        print("[setup] admin already exists")
+
+    st, out = req("POST", "/api/session", {"username": EMAIL, "password": PASSWORD})
+    session = out.get("id") if isinstance(out, dict) else None
+    print(f"[login] status={st} session={bool(session)}")
+    if not session:
+        print("FATAL: no session", out)
+        return
+
+    db_id = None
+    st, dbs = req("GET", "/api/database", session=session)
+    for d in (dbs.get("data") or []):
+        if d.get("name") == "Jobs DB":
+            db_id = d.get("id")
+            break
+    if db_id is None:
+        st, db = req("POST", "/api/database", {
+            "name": "Jobs DB",
+            "engine": "postgres",
+            "details": {"host": "postgres", "port": 5432, "dbname": "jobs", "user": "postgres", "password": "postgres", "ssl": False},
+            "is_full_sync": True,
+            "is_on_demand": False,
+        }, session=session)
+        db_id = db.get("id") if isinstance(db, dict) else None
+        print(f"[database] created id={db_id} status={st}")
+    else:
+        print(f"[database] exists id={db_id}")
+
+    card_ids = []
+    for name, display, query in CARDS:
+        st, card = req("POST", "/api/card", {
+            "name": name,
+            "dataset_query": {"database": db_id, "type": "native", "native": {"query": query, "template-tags": {}}},
+            "display": display,
+            "visualization_settings": {},
+        }, session=session)
+        cid = card.get("id") if isinstance(card, dict) else None
+        card_ids.append(cid)
+        print(f"[card] '{name}' id={cid} status={st}")
+
+    st, dash = req("POST", "/api/dashboard", {"name": "DS/AI/ML Job Market"}, session=session)
+    dash_id = dash.get("id") if isinstance(dash, dict) else None
+    print(f"[dashboard] id={dash_id} status={st}")
+
+    for cid in card_ids:
+        if cid:
+            st, _ = req("POST", f"/api/dashboard/{dash_id}/cards", {"cardId": cid}, session=session)
+            print(f"[dashboard] added card {cid} status={st}")
+
+    print(f"\nDONE. Dashboard URL: {BASE}/dashboard/{dash_id}")
+    print(f"Login: {EMAIL} / {PASSWORD}")
+
+
+if __name__ == "__main__":
+    main()
