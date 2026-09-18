@@ -35,6 +35,10 @@ STANDALONE_SPIDERS: list[tuple[str, dict[str, str]]] = [
     ("remotive", {}),
     ("weworkremotely", {}),
     ("remoteok", {}),
+    ("jobicy", {}),
+    ("arbeitnow", {}),
+    ("himalayas", {}),
+    ("workingnomads", {}),
     ("aijobs", {}),
     ("builtin", {}),
 ]
