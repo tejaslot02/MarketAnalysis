@@ -195,3 +195,24 @@ skills:
     - { name: Requirement Gathering, aliases: [requirement gathering, requirements gathering, requirements elicitation], weight: 5 }
     - { name: Stakeholder Management, aliases: [stakeholder management, stakeholder engagement], weight: 5 }
     - { name: Mentoring, aliases: [mentoring, mentorship, coach junior], weight: 4 }
+
+  retrieval_ranking:
+    - { name: Recommendation, aliases: [recommendation, recommendations, personalized recommendations], weight: 5 }
+    - { name: Retriever, aliases: [retriever, retrieval, dense retrieval, sparse retrieval, bm25], weight: 7 }
+    - { name: Reranker, aliases: [reranker, reranking, re-ranking, cross-encoder], weight: 6 }
+    - { name: Vector Search, aliases: [vector search, semantic search, similarity search, approximate nearest neighbor, ann], weight: 7 }
+    - { name: Learning to Rank, aliases: [learning to rank, ltr, ranking model, ranker], weight: 6 }
+    - { name: Query Understanding, aliases: [query understanding, query expansion, query rewriting], weight: 4 }
+
+  promoted_skills:
+    - { name: GPT, aliases: [gpt, gpt-3, gpt-4, chatgpt], weight: 7 }
+    - { name: Fine-Tuning, aliases: [fine-tuning, fine tuning, instruction tuning], weight: 7 }
+    - { name: LangSmith, aliases: [langsmith], weight: 6 }
+    - { name: GPU, aliases: [gpu, gpus, cuda], weight: 6 }
+    - { name: HPC, aliases: [hpc, high performance computing], weight: 5 }
+    - { name: DevOps, aliases: [devops], weight: 7 }
+    - { name: SDLC, aliases: [sdlc, software development lifecycle], weight: 4 }
+    - { name: REST, aliases: [rest, rest api, restful api], weight: 5 }
+    - { name: RBAC, aliases: [rbac, role-based access control], weight: 4 }
+    - { name: ETL, aliases: [etl, extract transform load, elt], weight: 6 }
+    - { name: Data Governance, aliases: [data governance, data lineage], weight: 5 }

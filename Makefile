@@ -19,6 +19,7 @@ init-prefect:
 migrate:
 	docker compose exec -T postgres psql -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-jobs} < db/init/02_master_data.sql
 	docker compose exec -T postgres psql -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-jobs} < db/init/03_analytics.sql
+	docker compose exec -T postgres psql -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-jobs} < db/init/04_skill_mining.sql
 
 # Seed master data (portals/skills/titles/companies) from the YAML dictionaries
 seed-master:

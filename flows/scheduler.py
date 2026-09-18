@@ -20,12 +20,14 @@ from scrape_flow import etl_flow
 from scrape_portals import scrape_portals_flow
 from seed_master_data import seed_master_data_flow
 from snapshot_analytics import snapshot_analytics_flow
+from mine_skills import mine_skills_flow
 
 SEED_CRON = os.getenv("SEED_CRON", "30 6 * * *")
 SCRAPE_CRON = os.getenv("SCRAPE_CRON", "0 7 * * *")
 CONSUME_INTERVAL = int(os.getenv("CONSUME_INTERVAL_SECONDS", "1800"))
 TIMEZONE = os.getenv("SCHEDULE_TIMEZONE", "America/New_York")
 SNAPSHOT_CRON = os.getenv("SNAPSHOT_CRON", "30 8 * * *")
+MINE_CRON = os.getenv("MINE_CRON", "0 9 * * *")
 
 
 def _serve() -> None:
@@ -43,6 +45,11 @@ def _serve() -> None:
         snapshot_analytics_flow.to_deployment(
             name="snapshot-analytics",
             schedules=[CronSchedule(cron=SNAPSHOT_CRON, timezone=TIMEZONE)],
+            tags=["analytics"],
+        ),
+        mine_skills_flow.to_deployment(
+            name="mine-skills",
+            schedules=[CronSchedule(cron=MINE_CRON, timezone=TIMEZONE)],
             tags=["analytics"],
         ),
         etl_flow.to_deployment(
