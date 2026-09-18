@@ -14,3 +14,6 @@ RUN pip install --no-cache-dir \
     elasticsearch==8.13.2 \
     minio==7.2.7 \
     PyYAML==6.0.1
+
+# Scrapy (runs the portal spiders from flows/scrape_portals.py)
+RUN pip install --no-cache-dir "scrapy==2.11.2" "Twisted==23.10.0"

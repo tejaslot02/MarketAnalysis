@@ -77,6 +77,23 @@ UPSERT_SQL = text(
         last_seen_at     = now()
     """
 )
+COMPANY_UPSERT_SQL = text(
+    """
+    INSERT INTO companies (id, name, first_seen_at, last_seen_at)
+    VALUES (:id, :name, now(), now())
+    ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        last_seen_at = now()
+    """
+)
+
+
+def _company_params(record: dict) -> dict | None:
+    name = (record.get("company") or "").strip()
+    if not name:
+        return None
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "unknown"
+    return {"id": slug, "name": name}
 
 
 def _json(value):
@@ -220,6 +237,14 @@ async def _process_entries(client, engine, es, mc, entries) -> tuple[int, list[s
         async with engine.begin() as conn:
             await conn.execute(UPSERT_SQL, _record_params(record))
 
+        cp = _company_params(record)
+        if cp:
+            try:
+                async with engine.begin() as conn:
+                    await conn.execute(COMPANY_UPSERT_SQL, cp)
+            except Exception as exc:  # noqa: BLE001
+                print(f"[etl] company upsert skipped ({exc})")
+
         es.index(index=ES_INDEX, id=record["id"], document=_es_doc(record))
         _archive(mc, raw)
 
@@ -245,13 +270,19 @@ async def consume_and_load(client, engine, es, mc) -> int:
             if len(entries) < BATCH_SIZE:
                 break
 
-        # 2) read new messages
-        messages = client.xreadgroup(GROUP, CONSUMER, {STREAM: ">"}, count=BATCH_SIZE, block=1000)
-        if messages:
+        # 2) read new messages until the stream is drained (loop in batches)
+        while True:
+            messages = client.xreadgroup(GROUP, CONSUMER, {STREAM: ">"}, count=BATCH_SIZE, block=1000)
+            if not messages:
+                break
+            got = 0
             for _, entries in messages:
                 n, acked = await _process_entries(client, engine, es, mc, entries)
                 total += n
                 all_acked += acked
+                got += len(entries)
+            if got < BATCH_SIZE:
+                break
     finally:
         for mid in all_acked:
             client.xack(STREAM, GROUP, mid)

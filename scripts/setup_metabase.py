@@ -1,7 +1,7 @@
 """Provision Metabase: admin user, Postgres data source, cards, and a dashboard.
 
 Run inside a container on the jobs-net network:
-    docker compose exec -T prefect-worker python - < scripts/setup_metabase.py
+    docker compose exec -T prefect-scheduler python - < scripts/setup_metabase.py
 """
 from __future__ import annotations
 
@@ -23,6 +23,12 @@ CARDS = [
     ("Jobs by Source", "bar", "SELECT source, COUNT(*) AS count FROM jobs GROUP BY 1 ORDER BY 2 DESC"),
     ("Top Skills", "bar", "SELECT s->>'name' AS skill, COUNT(*) AS count FROM jobs, jsonb_array_elements(skills) AS s GROUP BY 1 ORDER BY 2 DESC LIMIT 20"),
     ("150K+ Remote Jobs", "table", "SELECT title, company, title_canonical, seniority, salary_min, salary_max, url FROM jobs WHERE salary_ok AND is_remote ORDER BY salary_max DESC NULLS LAST"),
+    ("Skills Frequency (Top 25)", "table", "SELECT skill, category, job_count, avg_weight FROM skill_frequency ORDER BY job_count DESC LIMIT 25"),
+    ("Top Skill Pairs", "table", "SELECT skill_a || ' <-> ' || skill_b AS pair, co_count FROM skill_cooccurrence ORDER BY co_count DESC LIMIT 20"),
+    ("Portal Freshness", "table", "SELECT portal, MAX(finished_at) AS last_run, COALESCE(SUM(jobs_emitted),0) AS jobs, COUNT(*) FILTER (WHERE status='error') AS errors FROM portal_runs GROUP BY 1 ORDER BY 2 DESC NULLS LAST"),
+    ("Companies Tracked", "scalar", "SELECT COUNT(*) AS value FROM companies"),
+    ("New Jobs Last 7 Days", "scalar", "SELECT COUNT(*) AS value FROM jobs WHERE first_seen_at >= now() - interval '7 days'"),
+    ("Jobs by Track", "bar", "SELECT COALESCE(t.track, 'unclassified') AS track, COUNT(*) AS count FROM jobs j LEFT JOIN job_titles t ON t.canonical = j.title_canonical GROUP BY 1 ORDER BY 2 DESC"),
 ]
 
 

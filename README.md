@@ -74,5 +74,16 @@ phases, metrics, and the canonical job schema.
 
 ## Make targets
 
-`up` · `down` · `logs` · `ps` · `init-prefect` · `prefect-flows` · `seed-db` · `scrape` · `reset` · `clean`
-# job_se
+`up` · `down` · `logs` · `ps` · `init-prefect` · `migrate` · `seed-master` · `prefect-flows` · `seed-db` · `scrape` · `scrape-all` · `reset` · `clean`
+
+## Scheduling & Master Data
+
+- **Daily refresh** is handled by the `prefect-scheduler` service (`flows/scheduler.py`, Prefect 3 `prefect.serve`):
+  - `seed-master-data` -> daily 06:30 America/New_York (`SEED_CRON`)
+  - `scrape-portals` -> daily 07:00 America/New_York (`SCRAPE_CRON`)
+  - `consume-raw-jobs` -> every 30 min (`CONSUME_INTERVAL_SECONDS`)
+- **Portals**: 10 live adapters (greenhouse, lever, ashby, workable, remoteok, remotive, weworkremotely, hn, aijobs, builtin). ATS spiders fan out across the company list in `data/dictionaries/companies.yaml`.
+- **Skill database**: seeded from `data/dictionaries/skills_technologies.yaml` into the `skills` table; skill frequency and co-occurrence are exposed as `skill_frequency` / `skill_cooccurrence` views.
+- **Master data**: `companies`, `portals`, `skills`, `job_titles`, and `portal_runs` tables (see `db/init/02_master_data.sql`). Apply to an existing volume with `make migrate`, then `make seed-master`.
+- **Dashboard**: Metabase reads these tables/views; run `docker compose exec -T prefect-scheduler python - < scripts/setup_metabase.py` to (re)provision cards.
+

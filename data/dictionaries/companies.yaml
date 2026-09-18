@@ -1,0 +1,39 @@
+# Target companies for ATS fan-out scraping.
+# These are the public board handles (slugs), NOT display names -- verify them
+# against the ATS boards (boards.greenhouse.io / jobs.lever.co /
+# jobs.ashbyhq.com / apply.workable.com) before first run and add more freely.
+#
+# Used by flows/scrape_portals.py: for each ATS spider it runs one crawl per
+# handle, fanning out across the whole list.
+
+version: "1.0"
+
+ats:
+  greenhouse:    # https://boards.greenhouse.io/{token}
+    - anthropic
+    - databricks
+    - snowflake
+    - scaleai
+    - datadog
+    - stripe
+    - coinbase
+    - robinhood
+    - airtable
+    - reddit
+  lever:         # https://api.lever.co/v0/postings/{company}
+    - netlify
+  ashby:         # https://api.ashbyhq.com/posting-api/job-board/{org}
+    - openai
+    - notion
+    - linear
+    - ramp
+    - vercel
+    - langchain
+    - perplexity
+    - elevenlabs
+    - mistral
+  workable:      # https://apply.workable.com/api/v3/accounts/{account}/jobs
+    - huggingface
+
+# Standalone API/RSS/HTML boards -- no company fan-out needed (handled by their
+# own spiders; see flows/scrape_portals.py STANDALONE_SPIDERS).

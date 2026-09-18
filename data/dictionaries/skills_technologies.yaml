@@ -142,3 +142,56 @@ skills:
       - { name: Anomaly Detection, aliases: [anomaly detection, outlier detection, fraud detection], weight: 5 }
     reinforcement_learning:
       - { name: Reinforcement Learning, aliases: [reinforcement learning, rl, rlhf], weight: 5 }
+
+  # =====================================================================
+  # Seed skills (user-provided) -- grouped by professional domain.
+  # Already-present skills are intentionally NOT duplicated: Time Series,
+  # Anomaly Detection, Bayesian Methods, MLflow, CI/CD, SageMaker, Power BI,
+  # Tableau, LangChain, Prompt Engineering, RAG, Databricks, Snowflake, Spark.
+  # =====================================================================
+  ml_techniques:
+    - { name: Regression, aliases: [regression, linear regression, logistic regression, regression models], weight: 6 }
+    - { name: Classification, aliases: [classification, classification models, binary classification, multiclass classification], weight: 6 }
+    - { name: Clustering, aliases: [clustering, k-means, kmeans, unsupervised clustering], weight: 5 }
+    - { name: Feature Engineering, aliases: [feature engineering, feature selection, feature extraction], weight: 7 }
+    - { name: Statistical Analysis, aliases: [statistical analysis, statistical modeling, statistical methods], weight: 6 }
+    - { name: Survival Analysis, aliases: [survival analysis, kaplan-meier, cox regression, cox proportional hazards], weight: 5 }
+    - { name: Model Explainability, aliases: [model explainability, model interpretability, shap, lime, explainable ai, xai], weight: 6 }
+
+  genai_agentic:
+    - { name: Generative AI, aliases: [generative ai, genai, gen ai], weight: 8 }
+    - { name: Agentic AI, aliases: [agentic ai, ai agents, agentic workflows], weight: 8 }
+    - { name: Multi-Agent Systems, aliases: [multi-agent, multi agent, multi-agent systems, agent orchestration], weight: 7 }
+    - { name: LangGraph, aliases: [langgraph], weight: 7 }
+    - { name: Model Context Protocol (MCP), aliases: [model context protocol, mcp], weight: 6 }
+    - { name: Human-in-the-Loop Workflows, aliases: [human-in-the-loop, human in the loop, hitl], weight: 5 }
+    - { name: Synthetic Data Generation, aliases: [synthetic data, synthetic data generation, data synthesis], weight: 5 }
+
+  mlops_platform_extras:
+    - { name: Batch Inference, aliases: [batch inference, batch scoring, offline inference], weight: 6 }
+    - { name: Model Validation, aliases: [model validation, model risk management, model governance], weight: 6 }
+    - { name: Microsoft Fabric, aliases: [microsoft fabric, ms fabric], weight: 5 }
+    - { name: Lakehouse, aliases: [lakehouse, data lakehouse], weight: 6 }
+    - { name: Medallion Architecture, aliases: [medallion architecture, bronze silver gold, medallion], weight: 5 }
+
+  data_professional_tools:
+    - { name: Pandas, aliases: [pandas], weight: 8 }
+    - { name: SQL Server, aliases: [sql server, mssql, microsoft sql server], weight: 6 }
+    - { name: SSMS, aliases: [ssms, sql server management studio], weight: 4 }
+    - { name: MDX, aliases: [mdx, multidimensional expressions], weight: 4 }
+
+  nlp_marketing:
+    - { name: Topic Modeling, aliases: [topic modeling, topic modelling], weight: 6 }
+    - { name: LDA, aliases: [lda, latent dirichlet allocation], weight: 5 }
+    - { name: Text Preprocessing, aliases: [text preprocessing, text cleaning, text normalization, tokenization], weight: 5 }
+    - { name: Marketing Mix Modeling, aliases: [marketing mix modeling, mmm, media mix modeling], weight: 6 }
+    - { name: PyMC-Marketing, aliases: [pymc-marketing, pymc marketing], weight: 5 }
+    - { name: Budget Optimization, aliases: [budget optimization, marketing budget optimization, media budget allocation], weight: 5 }
+
+  business_bi:
+    - { name: Data Visualization, aliases: [data visualization, data visualisation, dashboards], weight: 6 }
+    - { name: Exploratory Data Analysis, aliases: [exploratory data analysis, eda], weight: 6 }
+    - { name: Data Storytelling, aliases: [data storytelling, storytelling with data], weight: 5 }
+    - { name: Requirement Gathering, aliases: [requirement gathering, requirements gathering, requirements elicitation], weight: 5 }
+    - { name: Stakeholder Management, aliases: [stakeholder management, stakeholder engagement], weight: 5 }
+    - { name: Mentoring, aliases: [mentoring, mentorship, coach junior], weight: 4 }

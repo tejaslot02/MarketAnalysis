@@ -180,19 +180,17 @@ services:
     networks:
       - jobs-net
 
-  prefect-worker:
+  prefect-scheduler:
     <<: *prefect-common
-    container_name: job-search-prefect-worker
+    container_name: job-search-prefect-scheduler
     restart: unless-stopped
-    # The work pool is created here (after the API is up) because
-    # `prefect work-pool create` is an API client call, unlike the DB migration.
-    command:
-      - sh
-      - -c
-      - 'prefect work-pool create jobs-pool --type process || true; exec prefect worker start --pool jobs-pool'
+    # Serves scheduled deployments in-process (Prefect 3 `prefect.serve`):
+    #   seed-master-data (daily), scrape-portals (daily), consume-raw-jobs (30 min).
+    command: ["python", "/opt/prefect/flows/scheduler.py"]
     environment:
       <<: *prefect-env
-      PYTHONPATH: /opt/prefect/flows
+      PYTHONPATH: /opt/prefect/flows:/opt/prefect/scrapers
+      PYTHONDONTWRITEBYTECODE: "1"
       DRAGONFLY_URL: redis://dragonfly:6379/0
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-jobs}
       ELASTICSEARCH_URL: http://elasticsearch:9200
@@ -200,14 +198,23 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
       DICTIONARY_DIR: /opt/prefect/data/dictionaries
+      SCRAPERS_DIR: /opt/prefect/scrapers
+      USER_AGENT: "${SCRAPER_USER_AGENT:-JobSearchBot/1.0 (+contact: admin@example.com)}"
+      SCRAPE_CRON: "${SCRAPE_CRON:-0 7 * * *}"
+      SEED_CRON: "${SEED_CRON:-30 6 * * *}"
+      CONSUME_INTERVAL_SECONDS: "${CONSUME_INTERVAL_SECONDS:-1800}"
+      SCHEDULE_TIMEZONE: "${SCHEDULE_TIMEZONE:-America/New_York}"
     volumes:
       - ./flows:/opt/prefect/flows:ro
+      - ./scrapers:/opt/prefect/scrapers:ro
       - ./data/dictionaries:/opt/prefect/data/dictionaries:ro
       - prefect_data:/root/.prefect
     depends_on:
       postgres:
         condition: service_healthy
       prefect-server:
+        condition: service_healthy
+      dragonfly:
         condition: service_healthy
     networks:
       - jobs-net
