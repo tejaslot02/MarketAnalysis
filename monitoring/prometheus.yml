@@ -3,9 +3,19 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  # Only the Prometheus self-scrape is enabled for now. The api and scraper
-  # services do not expose /metrics endpoints yet; add jobs for them (and a
-  # Grafana job) once real exporters exist.
   - job_name: prometheus
     static_configs:
       - targets: ["localhost:9090"]
+
+  # Prefect server exposes Prometheus metrics at /api/metrics
+  # when PREFECT_API_ENABLE_METRICS=true (see docker-compose.yml).
+  - job_name: prefect
+    metrics_path: /api/metrics
+    static_configs:
+      - targets: ["prefect-server:4200"]
+
+  # FastAPI exposes custom ETL metrics at /metrics (api/app/main.py).
+  - job_name: etl-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["api:8000"]

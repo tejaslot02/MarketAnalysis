@@ -1,4 +1,7 @@
-"""Remotive spider via its public JSON API (https://remotive.com/api/remote-jobs)."""
+"""Remotive spider via its public JSON API (https://remotive.com/api/remote-jobs).
+
+Collects ALL remote jobs (no search filter); classification happens downstream.
+"""
 from __future__ import annotations
 
 from typing import Any, Iterator
@@ -12,10 +15,13 @@ class RemotiveSpider(scrapy.Spider):
     name = "remotive"
     allowed_domains = ["remotive.com"]
 
-    def __init__(self, search: str = "machine learning", **kwargs: Any) -> None:
+    def __init__(self, search: str = "", **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.search = search
-        self.start_urls = [f"https://remotive.com/api/remote-jobs?search={search}&limit=200"]
+        url = "https://remotive.com/api/remote-jobs?limit=200"
+        if search:
+            url += f"&search={search}"
+        self.start_urls = [url]
 
     def parse(self, response: scrapy.http.Response) -> Iterator[dict[str, Any]]:
         data = response.json()

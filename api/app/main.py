@@ -18,6 +18,12 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Query, Response
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
+from prometheus_client import (
+    CONTENT_TYPE_LATEST,
+    CollectorRegistry,
+    Gauge,
+    generate_latest,
+)
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
@@ -146,3 +152,32 @@ def stats() -> dict[str, Any]:
         "by_source": by_source,
         "by_seniority": by_seniority,
     }
+
+
+
+@app.get("/metrics")
+def metrics() -> Response:
+    """Prometheus metrics for ETL observability (scraped by Prometheus)."""
+    registry = CollectorRegistry()
+
+    jobs_by_source = Gauge("etl_jobs_total", "Total canonical jobs by source", ["source"], registry=registry)
+    jobs_with_skills = Gauge("etl_jobs_with_skills_total", "Jobs with at least one extracted skill", registry=registry)
+    companies = Gauge("etl_companies_total", "Companies in master data", registry=registry)
+    portal_runs = Gauge("etl_portal_runs_total", "Portal scrape runs by portal and status", ["portal", "status"], registry=registry)
+    portal_last_success = Gauge("etl_portal_last_success_timestamp_seconds", "Last successful portal run (unix seconds)", ["portal"], registry=registry)
+
+    try:
+        with engine.connect() as conn:
+            for row in conn.execute(text("SELECT source, COUNT(*) AS n FROM jobs GROUP BY source")).mappings():
+                jobs_by_source.labels(source=row["source"]).set(row["n"])
+            jobs_with_skills.set(conn.execute(text("SELECT COUNT(*) FROM jobs WHERE jsonb_array_length(skills) > 0")).scalar() or 0)
+            companies.set(conn.execute(text("SELECT COUNT(*) FROM companies")).scalar() or 0)
+            for row in conn.execute(text("SELECT portal, status, COUNT(*) AS n FROM portal_runs GROUP BY 1, 2")).mappings():
+                portal_runs.labels(portal=row["portal"], status=row["status"]).set(row["n"])
+            for row in conn.execute(text("SELECT portal, MAX(finished_at) AS t FROM portal_runs WHERE status = 'success' GROUP BY 1")).mappings():
+                if row["t"] is not None:
+                    portal_last_success.labels(portal=row["portal"]).set(row["t"].timestamp())
+    except SQLAlchemyError:
+        pass
+
+    return Response(content=generate_latest(registry), media_type=CONTENT_TYPE_LATEST)

@@ -34,7 +34,7 @@ DATABASE_URL = os.getenv(
 STANDALONE_SPIDERS: list[tuple[str, dict[str, str]]] = [
     ("remotive", {}),
     ("weworkremotely", {}),
-    ("remoteok", {"tag": "machine-learning"}),
+    ("remoteok", {}),
     ("aijobs", {}),
     ("builtin", {}),
 ]

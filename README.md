@@ -74,7 +74,7 @@ phases, metrics, and the canonical job schema.
 
 ## Make targets
 
-`up` · `down` · `logs` · `ps` · `init-prefect` · `migrate` · `seed-master` · `prefect-flows` · `seed-db` · `scrape` · `scrape-all` · `reset` · `clean`
+`up` · `down` · `logs` · `ps` · `init-prefect` · `migrate` · `seed-master` · `prefect-flows` · `seed-db` · `scrape` · `scrape-all` · `venv` · `test` · `reset` · `clean`
 
 ## Scheduling & Master Data
 
@@ -87,3 +87,21 @@ phases, metrics, and the canonical job schema.
 - **Master data**: `companies`, `portals`, `skills`, `job_titles`, and `portal_runs` tables (see `db/init/02_master_data.sql`). Apply to an existing volume with `make migrate`, then `make seed-master`.
 - **Dashboard**: Metabase reads these tables/views; run `docker compose exec -T prefect-scheduler python - < scripts/setup_metabase.py` to (re)provision cards.
 
+
+
+## Testing
+
+```bash
+make venv    # create .venv + install requirements-dev.txt
+make test    # run pytest (see docs/TEST_CASES.md)
+```
+
+## Observability
+
+- **Prefect metrics**: `PREFECT_API_ENABLE_METRICS=true` exposes Prometheus metrics
+  at `http://localhost:4200/metrics` (scraped by the `prefect` job in
+  `monitoring/prometheus.yml`).
+- **Grafana**: Prometheus datasource + `ETL Dashboards` are provisioned from
+  `monitoring/grafana/` (login admin/admin at http://localhost:3100).
+- **Prefect UI**: served at http://localhost:4200 (API reachable via
+  `PREFECT_UI_API_URL=http://localhost:4200/api`).

@@ -162,6 +162,11 @@ services:
     container_name: job-search-prefect-server
     restart: unless-stopped
     command: ["prefect", "server", "start", "--host", "0.0.0.0", "--port", "4200"]
+    environment:
+      <<: *prefect-env
+      PREFECT_UI_API_URL: http://localhost:4200/api
+      PREFECT_API_ENABLE_METRICS: "true"
+      PREFECT_SERVER_METRICS_ENABLED: "true"
     ports:
       - "4200:4200"
     volumes:
@@ -323,6 +328,8 @@ services:
       - "3100:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
     networks:

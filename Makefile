@@ -1,4 +1,4 @@
-.PHONY: up down logs ps init-prefect migrate seed-master prefect-flows seed-db scrape scrape-remoteok scrape-all reset clean
+.PHONY: up down logs ps init-prefect migrate seed-master prefect-flows seed-db scrape scrape-remoteok scrape-all venv test reset clean
 
 up:
 	docker compose up -d
@@ -41,6 +41,16 @@ scrape-remoteok:
 # Run ALL configured portal spiders (fan-out over companies.yaml)
 scrape-all:
 	docker compose exec -T prefect-scheduler python /opt/prefect/flows/scrape_portals.py
+
+# Create a local virtualenv + install dev/test deps (see docs/TEST_CASES.md)
+venv:
+	python3 -m venv .venv
+	.venv/bin/pip install --upgrade pip
+	.venv/bin/pip install -r requirements-dev.txt
+
+# Run the ETL unit test suite (see docs/TEST_CASES.md)
+test:
+	.venv/bin/python -m pytest tests/ -v
 
 reset:
 	docker compose down -v

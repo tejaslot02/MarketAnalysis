@@ -1,4 +1,8 @@
-"""RemoteOK spider via its public JSON API (https://remoteok.com/api)."""
+"""RemoteOK spider via its public JSON API (https://remoteok.com/api).
+
+Collects ALL remote jobs (no tag filter); classification/salary signals are
+applied downstream in enrichment so nothing is dropped at ingest.
+"""
 from __future__ import annotations
 
 import hashlib
@@ -12,10 +16,11 @@ class RemoteOKSpider(scrapy.Spider):
     name = "remoteok"
     allowed_domains = ["remoteok.com"]
 
-    def __init__(self, tag: str = "machine-learning", **kwargs: Any) -> None:
+    def __init__(self, tag: str = "", **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.tag = tag
-        self.start_urls = [f"https://remoteok.com/api?tag={tag}"]
+        url = "https://remoteok.com/api" if not tag else f"https://remoteok.com/api?tag={tag}"
+        self.start_urls = [url]
 
     def parse(self, response: scrapy.http.Response) -> Iterator[dict[str, Any]]:
         data = json.loads(response.text)

@@ -1,18 +1,15 @@
-"""Example scraper: Greenhouse board via its public JSON API.
+"""Greenhouse ATS spider via its public JSON API.
 
-Demonstrates the per-portal adapter pattern:
-  1. Fetch source JSON (API-first — no HTML parsing needed).
-  2. Normalize to the canonical job record (see docs/PLAN.md schema).
-  3. Yield the record; the producer XADDs it to the Dragonfly stream raw-jobs (see run.py).
+Fetches the board job list, then each job's detail endpoint to capture the
+full description (`content`) for downstream text analysis. Every posting is
+collected (no salary/title filter at ingest).
 
-Run:
-  scrapy runspider scrapers/portals/example_spider.py \
-    -a board_token=companyname
+Run:  scrapy crawl greenhouse -a board_token=companyname
 """
-
 from __future__ import annotations
 
 import hashlib
+import re
 from typing import Any, Iterator
 
 import scrapy
@@ -31,21 +28,33 @@ class GreenhouseSpider(scrapy.Spider):
             f"https://boards-api.greenhouse.io/v1/boards/{board_token}/jobs"
         ]
 
-    def parse(self, response: scrapy.http.Response) -> Iterator[dict[str, Any]]:
+    def parse(self, response: scrapy.http.Response) -> Iterator[scrapy.Request]:
         jobs = response.json().get("jobs", [])
         for job in jobs:
-            yield self._normalize(job)
+            detail_url = (
+                f"https://boards-api.greenhouse.io/v1/boards/{self.board_token}/jobs/{job.get('id')}"
+            )
+            yield scrapy.Request(detail_url, callback=self.parse_detail, meta={"job": job})
 
-    # ------------------------------------------------------------------ #
-    def _normalize(self, job: dict[str, Any]) -> dict[str, Any]:
-        """Map a source record to the canonical job schema."""
+    def parse_detail(self, response: scrapy.http.Response) -> Iterator[dict[str, Any]]:
+        job = response.meta["job"]
+        detail = response.json()
+        yield self._normalize(job, detail.get("content", ""))
+
+    def _normalize(self, job: dict[str, Any], description: str = "") -> dict[str, Any]:
+        """Map a source record (plus detail content) to the canonical job schema."""
         title = job.get("title", "")
         external_id = str(job.get("id", ""))
         stable_id = hashlib.sha256(
             f"greenhouse:{self.board_token}:{external_id}".encode()
         ).hexdigest()
 
-        location = job.get("location", {}).get("name", "") if isinstance(job.get("location"), dict) else str(job.get("location", ""))
+        location = (
+            job.get("location", {}).get("name", "")
+            if isinstance(job.get("location"), dict)
+            else str(job.get("location", ""))
+        )
+        remote = self._is_remote(location, title)
 
         return {
             "id": stable_id,
@@ -54,22 +63,22 @@ class GreenhouseSpider(scrapy.Spider):
             "title": title,
             "company": self.board_token,
             "location": location,
-            "is_remote": self._is_remote(location, title),
-            "remote_type": "fully_remote" if self._is_remote(location, title) else None,
+            "is_remote": remote,
+            "remote_type": "fully_remote" if remote else None,
             "salary_min": None,
             "salary_max": None,
             "salary_currency": "USD",
             "salary_raw": None,
             "base_vs_tc": "unknown",
-            "posted_at": None,  # Greenhouse jobs API omits dates; re-check detail endpoint
-            "description": "",
+            "posted_at": job.get("updated_at"),
+            "description": re.sub(r"<[^>]+>", " ", description or ""),
             "url": job.get("absolute_url", ""),
             "seniority": None,  # filled by enrichment pipeline
             "title_canonical": None,
             "skills": [],
             "responsibilities": [],
             "salary_ok": False,
-            "raw": job,
+            "raw": {**job, "content": description},
         }
 
     @staticmethod
