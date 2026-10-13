@@ -21,6 +21,9 @@ class JobSummary(BaseModel):
     posted_at: datetime | None = None
     url: str | None = None
     seniority: str | None = None
+    skills: list[Any] = Field(default_factory=list)
+    responsibilities: list[Any] = Field(default_factory=list)
+    description: str | None = None
 
 
 class JobListResponse(BaseModel):

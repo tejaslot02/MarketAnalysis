@@ -1,11 +1,17 @@
+:; if [ -n "$BASH_VERSION" ] || [ -n "$ZSH_VERSION" ] || [ -n "$SH_VERSION" ] || [ -x "/bin/sh" ]; then
+:;   SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+:;   if [ -f "$SCRIPT_DIR/run_all.sh" ]; then
+:;     exec bash "$SCRIPT_DIR/run_all.sh" "$@"
+:;   fi
+:; fi
 @echo off
 setlocal EnableDelayedExpansion
 
-title Job Search Platform - Master End-to-End Pipeline Runner
+title Job Se - Master End-to-End Pipeline Runner
 
 echo ======================================================================
-echo    REMOTE 150K+ DS/AI/ML JOB SEARCH PLATFORM
-echo    Complete Production Pipeline Runner with Live Outputs and Links
+echo    JOB SE - REMOTE $150K+ DS/AI/ML JOB SEARCH PLATFORM
+echo    Complete Production Pipeline Runner with Live Outputs and Browser Launch
 echo ======================================================================
 echo.
 
@@ -13,6 +19,13 @@ cd /d "%~dp0"
 set "REPO_ROOT=%~dp0"
 set "DICTIONARY_DIR=%REPO_ROOT%data\dictionaries"
 set "PYTHONPATH=%REPO_ROOT%;%REPO_ROOT%flows;%REPO_ROOT%scrapers"
+
+set "OPEN_BROWSER=1"
+set "NO_PAUSE=0"
+for %%a in (%*) do (
+    if "%%a"=="--no-browser" set "OPEN_BROWSER=0"
+    if "%%a"=="--no-pause" set "NO_PAUSE=1"
+)
 
 :: 1. Ensure .env exists
 if not exist "%REPO_ROOT%.env" (
@@ -107,6 +120,19 @@ echo.
 echo [INFO] Generating local enriched JSON dataset export...
 %RUNNER% scripts/run_real_pipeline_local.py >nul 2>&1
 
+:: Wait for FastAPI server readiness
+echo.
+echo [INFO] Waiting for FastAPI server to respond at http://localhost:8000/health...
+for /l %%i in (1,1,15) do (
+    curl -s -f http://localhost:8000/health >nul 2>nul
+    if !ERRORLEVEL! equ 0 (
+        echo [INFO] FastAPI server is ready.
+        goto :SERVER_READY
+    )
+    timeout /t 1 /nobreak >nul 2>nul
+)
+:SERVER_READY
+
 goto :SHOW_OUTPUT_LINKS
 
 :: ====================================================================
@@ -135,26 +161,36 @@ echo ======================================================================
 echo.
 echo  LIVE WEB AND API INTERFACES:
 echo  --------------------------------------------------------------------
-echo  [1] FastAPI Interactive Docs  : http://localhost:8000/docs
-echo  [2] Live Ingested Jobs API    : http://localhost:8000/jobs
-echo  [3] $150K+ Remote Jobs Filter : http://localhost:8000/jobs?min_salary=150000^&remote=true
-echo  [4] API Health Status Check   : http://localhost:8000/health
-echo  [5] API Prometheus Metrics    : http://localhost:8000/metrics
+echo  [*] Web Application (Job Se)   : http://localhost:8000/
+echo  [1] FastAPI Interactive Docs   : http://localhost:8000/docs
+echo  [2] Live Ingested Jobs API     : http://localhost:8000/jobs
+echo  [3] $150K+ Remote Jobs Filter  : http://localhost:8000/jobs?min_salary=150000^&remote=true
+echo  [4] API Health Status Check    : http://localhost:8000/health
+echo  [5] API Prometheus Metrics     : http://localhost:8000/metrics
 echo.
 echo  DATA PLATFORM CONSOLES AND CLUSTERS:
 echo  --------------------------------------------------------------------
-echo  [6] Prefect Orchestrator UI   : http://localhost:4200
-echo  [7] MinIO Data Lake Console   : http://localhost:9101
-echo      Credentials               : minioadmin / minioadmin
-echo  [8] Elasticsearch Search API  : http://localhost:9200/jobs/_search?pretty
-echo  [9] Elasticsearch Job Count   : http://localhost:9200/jobs/_count
+echo  [6] Prefect Orchestrator UI    : http://localhost:4200
+echo  [7] MinIO Data Lake Console    : http://localhost:9101
+echo      Credentials                : minioadmin / minioadmin
+echo  [8] Elasticsearch Search API   : http://localhost:9200/jobs/_search?pretty
+echo  [9] Elasticsearch Job Count    : http://localhost:9200/jobs/_count
 echo.
 echo  LOCAL DATASET EXPORT:
 echo  --------------------------------------------------------------------
-echo  [10] Enriched JSON File       : data\real_jobs_enriched.json
+echo  [10] Enriched JSON File        : data\real_jobs_enriched.json
 echo.
 echo ======================================================================
-if "%1"=="--no-pause" goto :END
+
+:: Launch default browser to http://localhost:8000/
+if "!OPEN_BROWSER!"=="1" (
+    echo.
+    echo [INFO] Opening default browser to http://localhost:8000/...
+    start "" "http://localhost:8000/"
+)
+
+if "!NO_PAUSE!"=="1" goto :END
+echo.
 echo  Press any key to exit or close this terminal window...
 pause >nul
 :END

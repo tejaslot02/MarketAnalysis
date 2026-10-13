@@ -279,6 +279,8 @@ services:
       EMBEDDING_DIM: ${EMBEDDING_DIM:-1536}
     ports:
       - "8000:8000"
+    volumes:
+      - ./api/app:/app/api/app:ro
     depends_on:
       postgres:
         condition: service_healthy

@@ -26,6 +26,12 @@ from api.app.routers.search import router as search_router
 from api.app.routers.stats import router as stats_router
 from config.settings import get_settings
 
+from pathlib import Path
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
+from api.app.routers.ops import router as ops_router
+
 settings = get_settings()
 
 app = FastAPI(
@@ -39,6 +45,28 @@ app.include_router(health_router)
 app.include_router(jobs_router)
 app.include_router(stats_router)
 app.include_router(search_router)
+app.include_router(ops_router)
+
+# Mount static files and serve SPA frontend
+static_path = Path(__file__).parent / "static"
+static_path.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+
+
+@app.get("/", include_in_schema=False)
+async def root():
+    """Serve the single-page application frontend."""
+    index_file = static_path / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return {
+        "app": settings.app_name,
+        "version": settings.app_version,
+        "docs": "/docs",
+        "jobs": "/jobs",
+        "search": "/search",
+        "ops": "/api/ops/stream-status",
+    }
 
 
 @app.get("/metrics", tags=["Observability"])

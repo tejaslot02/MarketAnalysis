@@ -17,11 +17,14 @@ def strip_html(html: str) -> str:
 
 
 def extract_salary(text: Any) -> tuple[int | None, int | None]:
-    """Parse `$180,000 - $220,000` or `$200k`-style salary ranges."""
+    """Parse `$180,000 - $220,000`, `$200k`, or hourly `$90 - $150 /hour` (annualized at 2,000 hrs/yr)."""
     t = str(text or "")
+    is_hourly = bool(re.search(r"(?i)\b(?:hour|hr|hourly|/h|/hr|/hour)\b", t))
+    multiplier = 2000 if is_hourly else 1
+
     m = re.search(r"\$(\d{1,3}(?:,\d{3})*)\s*[-\u2013\u2014]\s*\$(\d{1,3}(?:,\d{3})*)", t)
     if m:
-        return int(m.group(1).replace(",", "")), int(m.group(2).replace(",", ""))
+        return int(m.group(1).replace(",", "")) * multiplier, int(m.group(2).replace(",", "")) * multiplier
     m = re.search(r"\$(\d{1,3}(?:,\d{3})*)\s*[kK]", t)
     if m:
         v = int(m.group(1).replace(",", "")) * 1000

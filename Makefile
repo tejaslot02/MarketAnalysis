@@ -1,4 +1,10 @@
-.PHONY: up down logs ps init-prefect migrate seed-master prefect-flows seed-db scrape scrape-remoteok scrape-all venv test reset clean
+.PHONY: run pipeline up down logs ps init-prefect migrate seed-master prefect-flows seed-db scrape scrape-remoteok scrape-all venv test reset clean
+
+run:
+	@bash ./run_all.sh
+
+pipeline:
+	@bash ./run_all.sh
 
 up:
 	docker compose up -d

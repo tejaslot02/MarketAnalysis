@@ -50,7 +50,8 @@ async def list_jobs(
     where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
     query = f"""
         SELECT id, title, company, location, is_remote, remote_type,
-               salary_min, salary_max, salary_currency, posted_at, url, seniority
+               salary_min, salary_max, salary_currency, posted_at, url, seniority,
+               skills, responsibilities, description
         FROM jobs
         {where}
         ORDER BY posted_at DESC NULLS LAST

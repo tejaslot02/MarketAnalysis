@@ -116,7 +116,8 @@ async def search_jobs(
     where = " WHERE " + " AND ".join(clauses)
     query = f"""
         SELECT id, title, company, location, is_remote, remote_type,
-               salary_min, salary_max, salary_currency, posted_at, url, seniority
+               salary_min, salary_max, salary_currency, posted_at, url, seniority,
+               skills, responsibilities, description
         FROM jobs
         {where}
         ORDER BY posted_at DESC NULLS LAST
@@ -140,6 +141,9 @@ async def search_jobs(
                     posted_at=r["posted_at"],
                     url=r["url"],
                     seniority=r["seniority"],
+                    skills=r.get("skills") or [],
+                    responsibilities=r.get("responsibilities") or [],
+                    description=r.get("description"),
                     bm25_score=1.0,
                     match_type="keyword",
                 )
