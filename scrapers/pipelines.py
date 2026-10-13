@@ -36,6 +36,7 @@ class DragonflyStreamPipeline:
 
     def process_item(self, item, spider):
         record = dict(item)
-        self.client.xadd(STREAM, {"data": json.dumps(record)})
-        log.info("XADD %s id=%s", STREAM, record.get("id"))
+        self.client.xadd(STREAM, {"data": json.dumps(record)}, maxlen=100000, approximate=True)
+        log.info("XADD %s id=%s (trimmed maxlen=100000)", STREAM, record.get("id"))
         return item
+

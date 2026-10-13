@@ -1,0 +1,5 @@
+{"id": "gold_skill_1", "text": "Looking for a Senior ML Engineer proficient in Python, PyTorch, and Kubernetes. Experience with LangChain and vector databases is a huge plus.", "expected_skills": ["Python", "PyTorch", "Kubernetes", "LangChain"]}
+{"id": "gold_skill_2", "text": "We need an AI Scientist with expertise in TensorFlow, JAX, Hugging Face transformers, and fine-tuning Llama models.", "expected_skills": ["TensorFlow", "JAX", "Hugging Face", "Transformers", "Llama"]}
+{"id": "gold_skill_3", "text": "Data Engineering role requiring SQL, Apache Spark, Snowflake, Kafka, and dbt.", "expected_skills": ["SQL", "Apache Spark", "Snowflake", "Kafka", "dbt"]}
+{"id": "gold_skill_4", "text": "Staff MLOps Architect to design model serving on AWS SageMaker, Docker, MLflow, and Datadog.", "expected_skills": ["AWS SageMaker", "Docker", "MLflow", "Datadog"]}
+{"id": "gold_skill_5", "text": "Computer Vision engineer working with OpenCV, PyTorch, TensorRT, and CUDA optimization.", "expected_skills": ["OpenCV", "PyTorch", "TensorRT", "CUDA"]}

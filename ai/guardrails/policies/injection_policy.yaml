@@ -1,0 +1,9 @@
+# Prompt Injection Detection Signatures
+blocked_patterns:
+  - "(?i)ignore (all )?(previous|above) instructions"
+  - "(?i)system override"
+  - "(?i)reveal (system|hidden) prompt"
+  - "(?i)you are now (dan|evil|unrestricted)"
+  - "(?i)developer mode activated"
+  - "(?i)disregard (all )?safety"
+  - "(?i)print internal (api key|credentials|database)"

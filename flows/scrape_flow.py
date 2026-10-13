@@ -13,16 +13,17 @@ import io
 import json
 import os
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import redis
+from dlq_handler import route_to_dlq
 from elasticsearch import Elasticsearch
 from minio import Minio
-from prefect import flow
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
-
 from transform import transform_record
+
+from prefect import flow
 
 DRAGONFLY_URL = os.getenv("DRAGONFLY_URL", "redis://dragonfly:6379/0")
 DATABASE_URL = os.getenv(
@@ -141,7 +142,7 @@ def _parse_dt(value):
         except (ValueError, TypeError):
             return None
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt
 
 
@@ -231,26 +232,31 @@ async def _process_entries(client, engine, es, mc, entries) -> tuple[int, list[s
     processed = 0
     acked: list[str] = []
     for message_id, fields in entries:
-        raw = json.loads(fields.get("data", "{}"))
-        record = transform_record(raw)
+        try:
+            raw = json.loads(fields.get("data", "{}"))
+            record = transform_record(raw)
 
-        async with engine.begin() as conn:
-            await conn.execute(UPSERT_SQL, _record_params(record))
+            async with engine.begin() as conn:
+                await conn.execute(UPSERT_SQL, _record_params(record))
 
-        cp = _company_params(record)
-        if cp:
-            try:
-                async with engine.begin() as conn:
-                    await conn.execute(COMPANY_UPSERT_SQL, cp)
-            except Exception as exc:  # noqa: BLE001
-                print(f"[etl] company upsert skipped ({exc})")
+            cp = _company_params(record)
+            if cp:
+                try:
+                    async with engine.begin() as conn:
+                        await conn.execute(COMPANY_UPSERT_SQL, cp)
+                except Exception as exc:  # noqa: BLE001
+                    print(f"[etl] company upsert skipped ({exc})")
 
-        es.index(index=ES_INDEX, id=record["id"], document=_es_doc(record))
-        _archive(mc, raw)
+            es.index(index=ES_INDEX, id=record["id"], document=_es_doc(record))
+            _archive(mc, raw)
 
-        acked.append(message_id)
-        processed += 1
+            acked.append(message_id)
+            processed += 1
+        except Exception as exc:  # noqa: BLE001
+            route_to_dlq(client, message_id, fields.get("data", "{}"), exc)
+            acked.append(message_id)
     return processed, acked
+
 
 
 async def consume_and_load(client, engine, es, mc) -> int:

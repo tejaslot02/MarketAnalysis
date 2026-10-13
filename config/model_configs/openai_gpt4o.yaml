@@ -1,0 +1,8 @@
+model_name: "gpt-4o"
+provider: "openai"
+temperature: 0.1
+max_tokens: 2048
+timeout: 30
+top_p: 1.0
+embedding_model: "text-embedding-3-small"
+embedding_dimension: 1536

@@ -1,0 +1,44 @@
+name: GenAI Evaluation Gate
+
+on:
+  pull_request:
+    paths:
+      - "prompts/**"
+      - "ai/**"
+      - "core/**"
+      - "evals/**"
+  workflow_dispatch:
+
+jobs:
+  prompt-and-rag-eval:
+    name: Prompt Regression & RAG Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip install -r api/requirements.txt
+
+      - name: Run Evaluation Harness
+        env:
+          DICTIONARY_DIR: data/dictionaries
+        run: |
+          python scripts/evaluate_prompts.py
+
+      - name: Upload Evaluation Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-reports
+          path: evals/reports/

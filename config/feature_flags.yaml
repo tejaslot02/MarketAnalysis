@@ -1,0 +1,6 @@
+# Feature flags for Remote 150K+ DS/AI/ML Job Search Platform
+# Controls progressive rollout of GenAI, semantic search, and guardrails
+
+use_llm_skill_extraction: false
+use_vector_search: false
+enable_guardrails: false

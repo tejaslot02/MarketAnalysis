@@ -1,0 +1,11 @@
+{# User Prompt: Job Enrichment v1 #}
+Please analyze the following job posting:
+
+Job Title: {{ job_title }}
+Company: {{ company | default('Unknown Company') }}
+Compensation: {{ salary_raw | default('Not disclosed') }}
+
+Job Description:
+"""
+{{ description }}
+"""

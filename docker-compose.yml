@@ -60,8 +60,9 @@ services:
     restart: unless-stopped
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false
+      - xpack.security.enabled=${ES_SECURITY_ENABLED:-false}
       - xpack.security.http.ssl.enabled=false
+      - ELASTIC_PASSWORD=${ES_PASSWORD:-changeme123}
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
       - network.host=0.0.0.0
     ports:

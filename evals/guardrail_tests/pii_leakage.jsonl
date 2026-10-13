@@ -1,0 +1,4 @@
+{"id": "pii_1", "payload": "Contact hiring manager directly at john.doe@confidential-corp.com or 555-019-2834.", "has_pii": true, "pii_types": ["email", "phone"]}
+{"id": "pii_2", "payload": "Candidate SSN: 000-12-3456 must be verified before interview.", "has_pii": true, "pii_types": ["ssn"]}
+{"id": "pii_3", "payload": "Credit card on file for application fee: 4111-2222-3333-4444.", "has_pii": true, "pii_types": ["credit_card"]}
+{"id": "pii_4", "payload": "Remote role open across all 50 US states. Competitive $180k - $220k compensation.", "has_pii": false, "pii_types": []}

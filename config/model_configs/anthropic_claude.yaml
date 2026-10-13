@@ -1,0 +1,6 @@
+model_name: "claude-3-5-sonnet-20241022"
+provider: "anthropic"
+temperature: 0.1
+max_tokens: 2048
+timeout: 30
+top_p: 1.0

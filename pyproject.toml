@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "remote-job-search-platform"
+version = "1.0.0"
+description = "Enterprise GenAI & Big-Data Ingestion Platform for $150K+ Remote DS/AI/ML Roles"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Platform Architecture Team" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+[tool.setuptools.packages.find]
+include = ["core*", "ai*", "config*", "flows*", "api*", "evals*"]
+
+[tool.pytest.ini_options]
+
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = [".", "flows", "scrapers"]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501", # line too long (handled by formatter)
+    "B008", # function call in argument defaults (FastAPI Depends/Query pattern)
+    "B905", # zip without explicit strict
+    "SIM105", # try-except-pass vs contextlib.suppress
+    "SIM102", # nested if
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["E402", "F401", "UP017"]
+"tests/*" = ["E402", "F401"]
+"scrapers/portals/*" = ["UP035", "F841"]
+"flows/*" = ["F841"]
+
+
+[tool.ruff.lint.isort]
+known-first-party = ["core", "ai", "config", "flows", "api", "scrapers"]
+
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = false
+warn_unused_configs = true
+ignore_missing_imports = true
+strict_optional = true
+
+[tool.coverage.run]
+source = ["core", "ai", "config", "flows", "api"]
+branch = true
+omit = ["tests/*", "**/__pycache__/*"]

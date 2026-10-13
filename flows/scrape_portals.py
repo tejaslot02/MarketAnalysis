@@ -19,9 +19,10 @@ import time
 from typing import Any
 
 import yaml
-from prefect import flow, get_run_logger
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
+
+from prefect import flow, get_run_logger
 
 SCRAPERS_DIR = os.getenv("SCRAPERS_DIR", "/opt/prefect/scrapers")
 DICTIONARY_DIR = os.getenv("DICTIONARY_DIR", "/opt/prefect/data/dictionaries")
@@ -133,9 +134,10 @@ async def scrape_portals_flow() -> list[dict[str, Any]]:
         if rc != 0:
             logger.error("stderr tail: %s", (err or "")[-1000:])
 
-    await _persist_runs(engine, results)
+    # Note: spider results are already persisted per-spider above to support live observability.
     await engine.dispose()
     return results
+
 
 
 if __name__ == "__main__":
