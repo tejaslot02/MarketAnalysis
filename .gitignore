@@ -22,6 +22,7 @@ flows/__pycache__/
 data/raw/
 data/processed/
 data/lake/
+data/*.json
 
 # Jupyter
 .ipynb_checkpoints/

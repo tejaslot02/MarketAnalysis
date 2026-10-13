@@ -23,7 +23,9 @@ def get_async_engine() -> AsyncEngine:
         settings = get_settings()
         # Ensure asyncpg dialect is present
         db_url = settings.database_url
-        if "postgresql://" in db_url and "postgresql+asyncpg://" not in db_url:
+        if "postgresql+psycopg2://" in db_url:
+            db_url = db_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://")
+        elif "postgresql://" in db_url and "postgresql+asyncpg://" not in db_url:
             db_url = db_url.replace("postgresql://", "postgresql+asyncpg://")
 
         _async_engine = create_async_engine(

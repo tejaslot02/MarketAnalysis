@@ -66,12 +66,14 @@ def _load_companies() -> dict[str, Any]:
         return yaml.safe_load(f) or {}
 
 
-def _spider_tasks() -> list[tuple[str, dict[str, str]]]:
+def _spider_tasks(selected: list[str] | None = None) -> list[tuple[str, dict[str, str]]]:
     tasks: list[tuple[str, dict[str, str]]] = list(STANDALONE_SPIDERS)
     ats = _load_companies().get("ats", {}) or {}
     for spider, key in ATS_ARG_KEY.items():
         for handle in ats.get(spider, []) or []:
             tasks.append((spider, {key: str(handle)}))
+    if selected:
+        tasks = [t for t in tasks if t[0] in selected]
     return tasks
 
 
@@ -104,9 +106,9 @@ async def _persist_runs(engine, results: list[dict[str, Any]]) -> None:
 
 
 @flow(name="scrape-portals")
-async def scrape_portals_flow() -> list[dict[str, Any]]:
+async def scrape_portals_flow(selected_spiders: list[str] | None = None) -> list[dict[str, Any]]:
     logger = get_run_logger()
-    tasks = _spider_tasks()
+    tasks = _spider_tasks(selected_spiders)
     logger.info("Scraping %d spider tasks from %s", len(tasks), SCRAPERS_DIR)
 
     engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
@@ -141,4 +143,6 @@ async def scrape_portals_flow() -> list[dict[str, Any]]:
 
 
 if __name__ == "__main__":
-    asyncio.run(scrape_portals_flow())
+    import sys
+    selected = sys.argv[1:] if len(sys.argv) > 1 else None
+    asyncio.run(scrape_portals_flow(selected))

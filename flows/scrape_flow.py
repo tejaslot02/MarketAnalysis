@@ -16,12 +16,16 @@ import re
 from datetime import UTC, datetime
 
 import redis
-from dlq_handler import route_to_dlq
+try:
+    from dlq_handler import route_to_dlq
+    from transform import transform_record
+except ModuleNotFoundError:
+    from flows.dlq_handler import route_to_dlq
+    from flows.transform import transform_record
 from elasticsearch import Elasticsearch
 from minio import Minio
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
-from transform import transform_record
 
 from prefect import flow
 
@@ -253,6 +257,7 @@ async def _process_entries(client, engine, es, mc, entries) -> tuple[int, list[s
             acked.append(message_id)
             processed += 1
         except Exception as exc:  # noqa: BLE001
+            print(f"[etl] ERROR processing message {message_id}: {exc}. Routing to DLQ.")
             route_to_dlq(client, message_id, fields.get("data", "{}"), exc)
             acked.append(message_id)
     return processed, acked
