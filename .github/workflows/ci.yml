@@ -52,3 +52,23 @@ jobs:
         run: |
           cp .env.example .env
           docker compose config --quiet
+
+  enforce-changelog:
+    name: Enforce Mandatory Changelog Update
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify CHANGELOG.md was updated
+        run: |
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }} HEAD | grep -E '^CHANGELOG\.md$' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "::error::Mandatory CHANGELOG.md update missing! Every PR must update CHANGELOG.md."
+            exit 1
+          fi
+          echo "✓ CHANGELOG.md verified in changeset."
+

@@ -1,0 +1,43 @@
+#!/bin/sh
+# Git pre-commit hook: Mandate commit-wise CHANGELOG.md update
+
+# Get list of staged files (added, copied, modified)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+# If no files are staged, allow commit (e.g. empty commit or merge)
+if [ -z "$STAGED_FILES" ]; then
+    exit 0
+fi
+
+# Check if CHANGELOG.md is among the staged files
+CHANGELOG_STAGED=0
+for FILE in $STAGED_FILES; do
+    if [ "$FILE" = "CHANGELOG.md" ]; then
+        CHANGELOG_STAGED=1
+        break
+    fi
+done
+
+# If only CHANGELOG.md itself is staged, allow commit
+# If code/doc files are staged without CHANGELOG.md, reject commit
+if [ "$CHANGELOG_STAGED" -eq 0 ]; then
+    echo ""
+    echo "================================================================================"
+    echo "  [ERROR] COMMIT REJECTED: Mandatory CHANGELOG.md Update Missing!"
+    echo "================================================================================"
+    echo "  Every commit in this repository is required to update CHANGELOG.md with a"
+    echo "  commit-wise breakdown of the changes made."
+    echo ""
+    echo "  Staged files for this commit:"
+    echo "$STAGED_FILES" | sed 's/^/    - /'
+    echo ""
+    echo "  To resolve this:"
+    echo "    1. Document your commit in CHANGELOG.md"
+    echo "    2. Stage the changelog: git add CHANGELOG.md"
+    echo "    3. Re-run your commit:  git commit"
+    echo "================================================================================"
+    echo ""
+    exit 1
+fi
+
+exit 0
