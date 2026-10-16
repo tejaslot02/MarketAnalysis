@@ -23,15 +23,99 @@ settings = get_settings()
 
 router = APIRouter(prefix="/api/ops", tags=["Operations"])
 
+MAX_LOG_ENTRIES = 2000
+pipeline_logs: list[dict[str, Any]] = []
+
+
+def _default_stages() -> list[dict[str, Any]]:
+    return [
+        {
+            "id": 1,
+            "key": "seed-master-data",
+            "name": "Seed Master Dimensions",
+            "status": "idle",
+            "started_at": None,
+            "finished_at": None,
+            "duration_seconds": None,
+            "flow_run_id": None,
+            "summary": "Skills, portals, and company dimensions",
+        },
+        {
+            "id": 2,
+            "key": "scrape-portals-daily",
+            "name": "Crawling Live Job Portals (Extract)",
+            "status": "idle",
+            "started_at": None,
+            "finished_at": None,
+            "duration_seconds": None,
+            "flow_run_id": None,
+            "summary": "14 Spiders pushing raw job postings to Redis stream",
+        },
+        {
+            "id": 3,
+            "key": "consume-raw-jobs",
+            "name": "Stream Ingestion & Multi-Store Load",
+            "status": "idle",
+            "started_at": None,
+            "finished_at": None,
+            "duration_seconds": None,
+            "flow_run_id": None,
+            "summary": "Transform, deduplicate & sync to Postgres, ES, MinIO",
+        },
+        {
+            "id": 4,
+            "key": "mine-skills",
+            "name": "Mining Skill Trends & Snapshots",
+            "status": "idle",
+            "started_at": None,
+            "finished_at": None,
+            "duration_seconds": None,
+            "flow_run_id": None,
+            "summary": "Technical skill taxonomy mining and daily analytics snapshot",
+        },
+    ]
+
+
 pipeline_state: dict[str, Any] = {
     "is_running": False,
+    "mode": "quick",
     "current_stage": "idle",
     "stage_index": 0,
+    "total_stages": 4,
+    "progress_percent": 0,
     "started_at": None,
     "finished_at": None,
+    "duration_seconds": None,
     "last_status": "idle",
     "last_error": None,
+    "active_flow_run_id": None,
+    "prefect_ui_url": "http://localhost:4200",
+    "stages": _default_stages(),
 }
+
+
+def append_pipeline_log(
+    message: str,
+    level: str = "INFO",
+    source: str = "orchestrator",
+    flow_run_id: str | None = None,
+    timestamp: str | None = None,
+) -> dict[str, Any]:
+    global pipeline_logs
+    if not timestamp:
+        timestamp = datetime.now(UTC).isoformat()
+    entry = {
+        "id": f"log-{len(pipeline_logs) + 1}",
+        "timestamp": timestamp,
+        "level": level.upper(),
+        "source": source,
+        "flow_run_id": flow_run_id,
+        "message": message,
+    }
+    pipeline_logs.append(entry)
+    if len(pipeline_logs) > MAX_LOG_ENTRIES:
+        pipeline_logs.pop(0)
+    return entry
 
 
 class TriggerPipelineRequest(BaseModel):
@@ -239,14 +323,69 @@ async def promote_skill_candidate(body: PromoteSkillRequest) -> dict[str, Any]:
         raise HTTPException(status_code=500, detail=f"Database error promoting skill: {exc}") from exc
 
 
-async def _wait_for_flow_run(client: httpx.AsyncClient, prefect_url: str, flow_run_id: str, max_seconds: int = 300) -> str:
+async def _fetch_flow_run_logs(
+    client: httpx.AsyncClient,
+    prefect_url: str,
+    flow_run_id: str,
+    flow_name: str,
+    seen_log_ids: set[str],
+) -> None:
+    try:
+        r = await client.post(
+            f"{prefect_url}/logs/filter",
+            json={
+                "logs": {"flow_run_id": {"any_": [flow_run_id]}},
+                "sort": "TIMESTAMP_ASC",
+                "limit": 250,
+            },
+        )
+        if r.status_code == 200:
+            for log in r.json():
+                lid = log.get("id")
+                if lid and lid not in seen_log_ids:
+                    seen_log_ids.add(lid)
+                    lvl_num = log.get("level", 20)
+                    lvl_str = "INFO"
+                    if lvl_num >= 40:
+                        lvl_str = "ERROR"
+                    elif lvl_num >= 30:
+                        lvl_str = "WARN"
+                    elif lvl_num <= 10:
+                        lvl_str = "DEBUG"
+
+                    msg = log.get("message", "")
+                    if "[success]" in msg.lower():
+                        lvl_str = "SUCCESS"
+
+                    append_pipeline_log(
+                        message=msg,
+                        level=lvl_str,
+                        source=flow_name,
+                        flow_run_id=flow_run_id,
+                        timestamp=log.get("timestamp"),
+                    )
+    except Exception as exc:
+        logger.debug("Prefect log stream fetch failed: %s", exc)
+
+
+async def _wait_for_flow_run(
+    client: httpx.AsyncClient,
+    prefect_url: str,
+    flow_run_id: str,
+    flow_name: str,
+    max_seconds: int = 300,
+) -> str:
     elapsed = 0
+    seen_log_ids: set[str] = set()
     while elapsed < max_seconds:
+        await _fetch_flow_run_logs(client, prefect_url, flow_run_id, flow_name, seen_log_ids)
         try:
             r = await client.get(f"{prefect_url}/flow_runs/{flow_run_id}")
             if r.status_code == 200:
                 state_name = (r.json().get("state_name") or "").upper()
                 if state_name in ("COMPLETED", "FAILED", "CRASHED", "CANCELLED"):
+                    await asyncio.sleep(0.5)
+                    await _fetch_flow_run_logs(client, prefect_url, flow_run_id, flow_name, seen_log_ids)
                     return state_name
         except Exception:
             pass
@@ -256,11 +395,23 @@ async def _wait_for_flow_run(client: httpx.AsyncClient, prefect_url: str, flow_r
 
 
 async def _run_pipeline_background(mode: str) -> None:
-    global pipeline_state
+    global pipeline_state, pipeline_logs
+    start_dt = datetime.now(UTC)
     pipeline_state["is_running"] = True
-    pipeline_state["started_at"] = datetime.now(UTC).isoformat()
+    pipeline_state["mode"] = mode
+    pipeline_state["started_at"] = start_dt.isoformat()
+    pipeline_state["finished_at"] = None
+    pipeline_state["duration_seconds"] = None
     pipeline_state["last_status"] = "running"
     pipeline_state["last_error"] = None
+    pipeline_state["progress_percent"] = 5
+    pipeline_state["stages"] = _default_stages()
+
+    append_pipeline_log(
+        f"=== Pipeline execution dispatched in '{mode.upper()}' mode ===",
+        level="INFO",
+        source="orchestrator",
+    )
 
     prefect_url = os.getenv("PREFECT_API_URL", "http://prefect-server:4200/api")
 
@@ -271,57 +422,223 @@ async def _run_pipeline_background(mode: str) -> None:
                 raise RuntimeError(f"Prefect server unreachable (HTTP {deps_resp.status_code})")
 
             deps = {d["name"]: d["id"] for d in deps_resp.json()}
+            append_pipeline_log(
+                f"Discovered {len(deps)} Prefect deployments: {', '.join(deps.keys())}",
+                level="INFO",
+                source="orchestrator",
+            )
 
-            # 1. Seed master data
+            # -----------------------------------------------------------
+            # Stage 1: Seed master data
+            # -----------------------------------------------------------
             if "seed-master-data" in deps:
+                st1_start = datetime.now(UTC)
                 pipeline_state["current_stage"] = "Seeding master dimensions"
                 pipeline_state["stage_index"] = 1
+                pipeline_state["progress_percent"] = 15
+                stage_obj = pipeline_state["stages"][0]
+                stage_obj["status"] = "running"
+                stage_obj["started_at"] = st1_start.isoformat()
+
+                append_pipeline_log(
+                    "[Stage 1/4] Triggering seed-master-data flow...",
+                    level="INFO",
+                    source="seed-master-data",
+                )
                 r = await client.post(f"{prefect_url}/deployments/{deps['seed-master-data']}/create_flow_run", json={})
                 if r.status_code in (200, 201):
-                    await _wait_for_flow_run(client, prefect_url, r.json()["id"], max_seconds=60)
+                    flow_id = r.json()["id"]
+                    stage_obj["flow_run_id"] = flow_id
+                    pipeline_state["active_flow_run_id"] = flow_id
+                    append_pipeline_log(
+                        f"[Stage 1/4] Flow run created: {flow_id}",
+                        level="INFO",
+                        source="seed-master-data",
+                        flow_run_id=flow_id,
+                    )
+                    state_res = await _wait_for_flow_run(client, prefect_url, flow_id, "seed-master-data", max_seconds=60)
+                    st1_dur = round((datetime.now(UTC) - st1_start).total_seconds(), 1)
+                    stage_obj["status"] = "completed" if state_res == "COMPLETED" else "failed"
+                    stage_obj["finished_at"] = datetime.now(UTC).isoformat()
+                    stage_obj["duration_seconds"] = st1_dur
+                    append_pipeline_log(
+                        f"[Stage 1/4] Seed master data finished ({state_res}) in {st1_dur}s",
+                        level="SUCCESS" if state_res == "COMPLETED" else "WARN",
+                        source="seed-master-data",
+                        flow_run_id=flow_id,
+                    )
+            else:
+                pipeline_state["stages"][0]["status"] = "skipped"
 
-            # 2. Extract Stage: Web Spiders
+            # -----------------------------------------------------------
+            # Stage 2: Extract Stage (Web Spiders)
+            # -----------------------------------------------------------
             if mode != "etl" and "scrape-portals-daily" in deps:
+                st2_start = datetime.now(UTC)
                 pipeline_state["current_stage"] = "Crawling live job portals (Extract)"
                 pipeline_state["stage_index"] = 2
+                pipeline_state["progress_percent"] = 35
+                stage_obj = pipeline_state["stages"][1]
+                stage_obj["status"] = "running"
+                stage_obj["started_at"] = st2_start.isoformat()
+
                 params = {"selected_spiders": ["remotive", "arbeitnow"]} if mode == "quick" else {}
+                spider_label = "2 quick spiders" if mode == "quick" else "all 14 active spiders"
+                append_pipeline_log(
+                    f"[Stage 2/4] Triggering scrape-portals-daily flow ({spider_label})...",
+                    level="INFO",
+                    source="scrape-portals",
+                )
                 r = await client.post(
                     f"{prefect_url}/deployments/{deps['scrape-portals-daily']}/create_flow_run",
                     json={"parameters": params},
                 )
                 if r.status_code in (200, 201):
-                    await _wait_for_flow_run(client, prefect_url, r.json()["id"], max_seconds=300)
+                    flow_id = r.json()["id"]
+                    stage_obj["flow_run_id"] = flow_id
+                    pipeline_state["active_flow_run_id"] = flow_id
+                    append_pipeline_log(
+                        f"[Stage 2/4] Flow run created: {flow_id}. Crawling live career sites into raw-jobs stream...",
+                        level="INFO",
+                        source="scrape-portals",
+                        flow_run_id=flow_id,
+                    )
+                    state_res = await _wait_for_flow_run(client, prefect_url, flow_id, "scrape-portals", max_seconds=420)
+                    st2_dur = round((datetime.now(UTC) - st2_start).total_seconds(), 1)
+                    stage_obj["status"] = "completed" if state_res == "COMPLETED" else "failed"
+                    stage_obj["finished_at"] = datetime.now(UTC).isoformat()
+                    stage_obj["duration_seconds"] = st2_dur
+                    append_pipeline_log(
+                        f"[Stage 2/4] Web spider crawls finished ({state_res}) in {st2_dur}s",
+                        level="SUCCESS" if state_res == "COMPLETED" else "WARN",
+                        source="scrape-portals",
+                        flow_run_id=flow_id,
+                    )
+            else:
+                pipeline_state["stages"][1]["status"] = "skipped"
 
-            # 3. Transform & Load: Consume Redis Stream
+            # -----------------------------------------------------------
+            # Stage 3: Transform & Load (Consume Dragonfly Stream)
+            # -----------------------------------------------------------
             if "consume-raw-jobs" in deps:
+                st3_start = datetime.now(UTC)
                 pipeline_state["current_stage"] = "Stream ingestion & multi-store load"
                 pipeline_state["stage_index"] = 3
+                pipeline_state["progress_percent"] = 65
+                stage_obj = pipeline_state["stages"][2]
+                stage_obj["status"] = "running"
+                stage_obj["started_at"] = st3_start.isoformat()
+
+                append_pipeline_log(
+                    "[Stage 3/4] Triggering consume-raw-jobs flow (Dragonfly -> Postgres, ES, MinIO)...",
+                    level="INFO",
+                    source="consume-raw-jobs",
+                )
                 r = await client.post(f"{prefect_url}/deployments/{deps['consume-raw-jobs']}/create_flow_run", json={})
                 if r.status_code in (200, 201):
-                    await _wait_for_flow_run(client, prefect_url, r.json()["id"], max_seconds=300)
+                    flow_id = r.json()["id"]
+                    stage_obj["flow_run_id"] = flow_id
+                    pipeline_state["active_flow_run_id"] = flow_id
+                    append_pipeline_log(
+                        f"[Stage 3/4] Flow run created: {flow_id}",
+                        level="INFO",
+                        source="consume-raw-jobs",
+                        flow_run_id=flow_id,
+                    )
+                    state_res = await _wait_for_flow_run(client, prefect_url, flow_id, "consume-raw-jobs", max_seconds=360)
+                    st3_dur = round((datetime.now(UTC) - st3_start).total_seconds(), 1)
+                    stage_obj["status"] = "completed" if state_res == "COMPLETED" else "failed"
+                    stage_obj["finished_at"] = datetime.now(UTC).isoformat()
+                    stage_obj["duration_seconds"] = st3_dur
+                    append_pipeline_log(
+                        f"[Stage 3/4] Stream ingestion finished ({state_res}) in {st3_dur}s",
+                        level="SUCCESS" if state_res == "COMPLETED" else "WARN",
+                        source="consume-raw-jobs",
+                        flow_run_id=flow_id,
+                    )
+            else:
+                pipeline_state["stages"][2]["status"] = "skipped"
 
-            # 4. Analytics & Skills
+            # -----------------------------------------------------------
+            # Stage 4: Analytics & Skill Mining
+            # -----------------------------------------------------------
             if "mine-skills" in deps:
+                st4_start = datetime.now(UTC)
                 pipeline_state["current_stage"] = "Mining skill trends & generating snapshots"
                 pipeline_state["stage_index"] = 4
+                pipeline_state["progress_percent"] = 85
+                stage_obj = pipeline_state["stages"][3]
+                stage_obj["status"] = "running"
+                stage_obj["started_at"] = st4_start.isoformat()
+
+                append_pipeline_log(
+                    "[Stage 4/4] Triggering mine-skills flow (Taxonomy candidate extraction)...",
+                    level="INFO",
+                    source="mine-skills",
+                )
                 r = await client.post(f"{prefect_url}/deployments/{deps['mine-skills']}/create_flow_run", json={})
                 if r.status_code in (200, 201):
-                    await _wait_for_flow_run(client, prefect_url, r.json()["id"], max_seconds=120)
+                    flow_id = r.json()["id"]
+                    stage_obj["flow_run_id"] = flow_id
+                    pipeline_state["active_flow_run_id"] = flow_id
+                    state_res = await _wait_for_flow_run(client, prefect_url, flow_id, "mine-skills", max_seconds=120)
+                    st4_dur = round((datetime.now(UTC) - st4_start).total_seconds(), 1)
+                    stage_obj["status"] = "completed" if state_res == "COMPLETED" else "failed"
+                    stage_obj["finished_at"] = datetime.now(UTC).isoformat()
+                    stage_obj["duration_seconds"] = st4_dur
+                    append_pipeline_log(
+                        f"[Stage 4/4] Mine skills completed ({state_res}) in {st4_dur}s",
+                        level="SUCCESS" if state_res == "COMPLETED" else "WARN",
+                        source="mine-skills",
+                        flow_run_id=flow_id,
+                    )
 
             if "snapshot-analytics" in deps:
-                await client.post(f"{prefect_url}/deployments/{deps['snapshot-analytics']}/create_flow_run", json={})
+                append_pipeline_log(
+                    "Triggering snapshot-analytics flow...",
+                    level="INFO",
+                    source="snapshot-analytics",
+                )
+                r = await client.post(f"{prefect_url}/deployments/{deps['snapshot-analytics']}/create_flow_run", json={})
+                if r.status_code in (200, 201):
+                    flow_id = r.json()["id"]
+                    await _wait_for_flow_run(client, prefect_url, flow_id, "snapshot-analytics", max_seconds=60)
+                    append_pipeline_log(
+                        "Daily analytics snapshot saved to PostgreSQL & MinIO data lake.",
+                        level="SUCCESS",
+                        source="snapshot-analytics",
+                    )
 
         pipeline_state["last_status"] = "success"
         pipeline_state["current_stage"] = "Pipeline completed successfully"
-        pipeline_state["stage_index"] = 5
+        pipeline_state["stage_index"] = 4
+        pipeline_state["progress_percent"] = 100
+        append_pipeline_log(
+            "✓ End-to-end data pipeline completed successfully. All data stores synchronized.",
+            level="SUCCESS",
+            source="orchestrator",
+        )
     except Exception as exc:
         logger.error("Pipeline background execution failed: %s", exc)
         pipeline_state["last_status"] = "error"
         pipeline_state["last_error"] = str(exc)
         pipeline_state["current_stage"] = f"Failed: {exc}"
+        append_pipeline_log(
+            f"Pipeline execution aborted with error: {exc}",
+            level="ERROR",
+            source="orchestrator",
+        )
     finally:
         pipeline_state["is_running"] = False
-        pipeline_state["finished_at"] = datetime.now(UTC).isoformat()
+        finished_dt = datetime.now(UTC)
+        pipeline_state["finished_at"] = finished_dt.isoformat()
+        total_dur = round((finished_dt - start_dt).total_seconds(), 1)
+        pipeline_state["duration_seconds"] = total_dur
+        append_pipeline_log(
+            f"Execution finished in {total_dur}s. Status: {pipeline_state['last_status']}",
+            level="INFO",
+            source="orchestrator",
+        )
 
 
 @router.post("/trigger-pipeline")
@@ -350,5 +667,91 @@ async def trigger_pipeline(
 @router.get("/pipeline-status")
 def get_pipeline_status() -> dict[str, Any]:
     """Retrieve active and recent pipeline execution status for UI telemetry."""
-    return dict(pipeline_state)
+    res = dict(pipeline_state)
+    if res.get("is_running") and res.get("started_at"):
+        try:
+            started = datetime.fromisoformat(res["started_at"])
+            res["elapsed_seconds"] = round((datetime.now(UTC) - started).total_seconds(), 1)
+        except Exception:
+            res["elapsed_seconds"] = 0
+    else:
+        res["elapsed_seconds"] = res.get("duration_seconds")
+    res["log_count"] = len(pipeline_logs)
+    return res
+
+
+@router.get("/pipeline-logs")
+async def get_pipeline_logs(
+    limit: int = Query(250, ge=1, le=1000),
+    since: str | None = Query(None),
+    level: str | None = Query(None),
+    search: str | None = Query(None),
+) -> dict[str, Any]:
+    """Retrieve structured real-time logs for the execution terminal."""
+    global pipeline_logs
+    logs = list(pipeline_logs)
+
+    # If in-memory is empty (e.g. server freshly restarted), pull recent logs from Prefect
+    if not logs:
+        try:
+            prefect_url = os.getenv("PREFECT_API_URL", "http://prefect-server:4200/api")
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                r = await client.post(
+                    f"{prefect_url}/logs/filter",
+                    json={"sort": "TIMESTAMP_DESC", "limit": limit},
+                )
+                if r.status_code == 200:
+                    for log in reversed(r.json()):
+                        lvl_num = log.get("level", 20)
+                        lvl_str = "INFO"
+                        if lvl_num >= 40:
+                            lvl_str = "ERROR"
+                        elif lvl_num >= 30:
+                            lvl_str = "WARN"
+                        msg = log.get("message", "")
+                        if "[success]" in msg.lower():
+                            lvl_str = "SUCCESS"
+                        logs.append({
+                            "id": log.get("id"),
+                            "timestamp": log.get("timestamp"),
+                            "level": lvl_str,
+                            "source": log.get("name", "prefect"),
+                            "flow_run_id": log.get("flow_run_id"),
+                            "message": msg,
+                        })
+        except Exception as exc:
+            logger.debug("Prefect log fallback query failed: %s", exc)
+
+    if since:
+        logs = [l for l in logs if str(l.get("timestamp", "")) > since]
+
+    if level and level.upper() != "ALL":
+        req_lvl = level.upper()
+        logs = [l for l in logs if l.get("level") == req_lvl]
+
+    if search:
+        s_lower = search.strip().lower()
+        logs = [
+            l for l in logs
+            if s_lower in l.get("message", "").lower()
+            or s_lower in l.get("source", "").lower()
+        ]
+
+    return {
+        "count": len(logs),
+        "total_available": len(pipeline_logs),
+        "is_running": pipeline_state.get("is_running", False),
+        "current_stage": pipeline_state.get("current_stage"),
+        "stage_index": pipeline_state.get("stage_index"),
+        "progress_percent": pipeline_state.get("progress_percent", 0),
+        "logs": logs[-limit:],
+    }
+
+
+@router.post("/pipeline-logs/clear")
+def clear_pipeline_logs() -> dict[str, str]:
+    """Clear in-memory telemetry logs buffer."""
+    global pipeline_logs
+    pipeline_logs.clear()
+    return {"status": "cleared"}
 

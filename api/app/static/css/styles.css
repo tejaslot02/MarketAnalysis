@@ -1216,3 +1216,622 @@ a:hover {
     max-width: 100vw;
   }
 }
+
+/* ==========================================================================
+   Pipeline Progress Tracker & Stepper
+   ========================================================================== */
+.pipeline-progress-section {
+  margin: var(--space-3) var(--space-4) var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: #f8fafc;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.pipeline-progress-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.progress-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pipeline-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 rgba(9, 105, 218, 0.7);
+  animation: pulse-ring 1.8s infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(9, 105, 218, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(9, 105, 218, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(9, 105, 218, 0); }
+}
+
+.pipeline-stage-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.progress-stats-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress-pct-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+}
+
+.pipeline-timer {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.pipeline-progress-track {
+  height: 6px;
+  background: var(--bg-muted);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pipeline-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0969da, #38bdf8);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+  position: relative;
+}
+
+.pipeline-progress-fill.active {
+  background-size: 24px 24px;
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.2) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.2) 75%,
+    transparent 75%,
+    transparent
+  );
+  animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+  from { background-position: 24px 0; }
+  to { background-position: 0 0; }
+}
+
+.pipeline-stepper-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+@media (max-width: 900px) {
+  .pipeline-stepper-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.stepper-step {
+  padding: 8px 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: border-color var(--transition), background-color var(--transition);
+}
+
+.stepper-step.active {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.stepper-step.completed {
+  border-color: var(--status-success-border);
+  background: var(--status-success-bg);
+}
+
+.stepper-step.failed {
+  border-color: var(--status-danger-border);
+  background: var(--status-danger-bg);
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.step-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+}
+
+.stepper-step.active .step-num {
+  background: var(--accent);
+  color: #fff;
+}
+
+.stepper-step.completed .step-num {
+  background: #16a34a;
+  color: #fff;
+}
+
+.step-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.step-badge {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+}
+
+.stepper-step.active .step-badge {
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.stepper-step.completed .step-badge {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.step-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   Pipeline Live Telemetry & Log Console (Industrial Terminal)
+   ========================================================================== */
+.pipeline-console-card {
+  margin: var(--space-4) 0 0 0;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: all var(--transition);
+}
+
+.pipeline-console-card.expanded {
+  position: fixed;
+  top: 16px;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  z-index: 1000;
+  margin: 0;
+  border-color: #58a6ff;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+.console-header {
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  user-select: none;
+}
+
+.console-title-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.terminal-badge-icon {
+  width: 22px;
+  height: 22px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #58a6ff;
+}
+
+.console-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f0f6fc;
+  letter-spacing: 0.2px;
+}
+
+.console-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: #21262d;
+  color: #8b949e;
+  border: 1px solid #30363d;
+}
+
+.console-live-pill.active {
+  background: rgba(35, 134, 54, 0.2);
+  color: #3fb950;
+  border-color: rgba(63, 185, 80, 0.4);
+}
+
+.console-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #8b949e;
+}
+
+.console-live-pill.active .console-live-dot {
+  background: #3fb950;
+  animation: blink 1.2s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.console-count-pill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #8b949e;
+  background: #21262d;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #30363d;
+}
+
+.console-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.console-btn-group {
+  display: inline-flex;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+
+.console-filter-btn {
+  background: transparent;
+  border: none;
+  color: #8b949e;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.console-filter-btn:hover {
+  color: #f0f6fc;
+  background: #21262d;
+}
+
+.console-filter-btn.active {
+  background: #1f6feb;
+  color: #ffffff;
+}
+
+.console-search-box {
+  display: flex;
+  align-items: center;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: var(--radius-sm);
+  padding: 0 8px;
+  height: 26px;
+  gap: 6px;
+  color: #8b949e;
+}
+
+.console-search-box:focus-within {
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 1px #58a6ff;
+}
+
+.console-search-box input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #f0f6fc;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  width: 130px;
+  transition: width 150ms ease;
+}
+
+.console-search-box input:focus {
+  width: 190px;
+}
+
+.search-clear-btn {
+  background: transparent;
+  border: none;
+  color: #8b949e;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.search-clear-btn:hover {
+  color: #f0f6fc;
+}
+
+.console-action-btn {
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: var(--radius-sm);
+  color: #c9d1d9;
+  font-size: 11px;
+  height: 26px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 120ms ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.console-action-btn:hover {
+  background: #30363d;
+  color: #f0f6fc;
+  border-color: #8b949e;
+}
+
+.console-action-btn.active {
+  background: #1f6feb;
+  border-color: #388bfd;
+  color: #ffffff;
+}
+
+.console-action-btn.link {
+  color: #58a6ff;
+}
+
+.console-action-btn.link:hover {
+  background: #1f6feb22;
+  border-color: #58a6ff;
+  color: #79c0ff;
+}
+
+.console-action-btn.icon-only {
+  padding: 0 6px;
+}
+
+.console-viewport-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.console-terminal-body {
+  height: 280px;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #e6edf3;
+  background: #090d16;
+  scrollbar-width: thin;
+  scrollbar-color: #30363d #090d16;
+}
+
+.pipeline-console-card.expanded .console-terminal-body {
+  height: calc(100vh - 110px);
+}
+
+.console-terminal-body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.console-terminal-body::-webkit-scrollbar-track {
+  background: #090d16;
+}
+
+.console-terminal-body::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 4px;
+}
+
+.console-terminal-body::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+
+.terminal-empty-state {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #6e7681;
+  padding: 24px 8px;
+  font-style: italic;
+}
+
+.terminal-prompt-sym {
+  color: #58a6ff;
+  font-weight: 700;
+  font-size: 14px;
+  font-style: normal;
+}
+
+.terminal-log-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 0;
+  border-radius: 2px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  transition: background 80ms ease;
+}
+
+.terminal-log-line:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.log-time {
+  color: #6e7681;
+  font-size: 11px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.log-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  user-select: none;
+  text-align: center;
+  min-width: 44px;
+}
+
+.log-badge.info {
+  background: #0d2847;
+  color: #58a6ff;
+  border: 1px solid #1f6feb44;
+}
+
+.log-badge.success {
+  background: #0d3820;
+  color: #3fb950;
+  border: 1px solid #2ea04344;
+}
+
+.log-badge.warn {
+  background: #3d2c00;
+  color: #d29922;
+  border: 1px solid #bb800944;
+}
+
+.log-badge.error {
+  background: #490202;
+  color: #f85149;
+  border: 1px solid #da363344;
+}
+
+.log-badge.debug {
+  background: #21262d;
+  color: #8b949e;
+  border: 1px solid #30363d;
+}
+
+.log-source {
+  color: #a5d6ff;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.log-msg {
+  color: #e6edf3;
+  flex: 1;
+}
+
+.log-msg .highlight-num {
+  color: #79c0ff;
+  font-weight: 600;
+}
+
+.log-msg .highlight-success {
+  color: #56d364;
+  font-weight: 600;
+}
+
+.console-jump-bottom-btn {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f6feb;
+  color: #ffffff;
+  border: 1px solid #58a6ff;
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: all 120ms ease;
+  z-index: 10;
+}
+
+.console-jump-bottom-btn:hover {
+  background: #388bfd;
+  transform: translateX(-50%) translateY(-1px);
+}
+

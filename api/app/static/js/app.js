@@ -24,6 +24,16 @@ const state = {
   selectedDlqMessage: null,
   spiderRuns: [],
   pollingInterval: null,
+  // Pipeline & Telemetry state
+  pipelineStatus: null,
+  pipelineLogs: [],
+  consoleFilterLevel: 'ALL',
+  consoleSearchQuery: '',
+  consoleAutoScroll: true,
+  consoleExpanded: false,
+  pipelinePollInterval: null,
+  pipelineLogsPollInterval: null,
+  lastLogTimestamp: null,
 };
 
 // ============================================================================
@@ -70,6 +80,7 @@ function switchView(viewName) {
   // Manage telemetry polling
   if (viewName === 'ops') {
     loadOpsTelemetry();
+    checkActivePipelineRun();
     if (!state.pollingInterval) {
       state.pollingInterval = setInterval(loadOpsTelemetry, 10000);
     }
@@ -519,116 +530,571 @@ function initOpsActions() {
     });
   }
 
+  // Initialize Terminal Console Controls
+  initPipelineConsoleControls();
+
   // Trigger Full Pipeline Execution from UI
   const triggerBtn = document.getElementById('btnTriggerPipeline');
-  const triggerText = document.getElementById('btnTriggerPipelineText');
-  const runBanner = document.getElementById('pipelineRunBanner');
-  const statusText = document.getElementById('pipelineRunStatusText');
-  const timerText = document.getElementById('pipelineRunTimer');
-
-  let pollInterval = null;
-  let timerInterval = null;
-  let startTime = null;
-
   if (triggerBtn) {
     triggerBtn.addEventListener('click', async () => {
       if (triggerBtn.disabled) return;
-      if (!confirm('Rerun full end-to-end data pipeline?\n\nThis will trigger live spider crawl, stream ingestion into Dragonfly, normalization into PostgreSQL, Elasticsearch indexing, and skill mining.')) {
+      if (!confirm('Rerun full end-to-end data pipeline?\n\nThis will trigger live spider crawl across career sites, stream ingestion into Dragonfly, normalization into PostgreSQL, Elasticsearch indexing, and skill mining.')) {
         return;
       }
+      startPipelineRun('full');
+    });
+  }
 
-      try {
-        triggerBtn.disabled = true;
-        triggerBtn.style.opacity = '0.7';
-        triggerBtn.style.cursor = 'wait';
-        if (triggerText) triggerText.textContent = 'Starting Pipeline...';
+  // Check if pipeline is currently active on page load, or load recent logs
+  checkActivePipelineRun();
+}
 
-        const resp = await fetch('/api/ops/trigger-pipeline', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mode: 'full' }),
-        });
-        const data = await resp.json();
+function initPipelineConsoleControls() {
+  // Filter level buttons
+  const filterBtns = document.querySelectorAll('.console-filter-btn');
+  filterBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      filterBtns.forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      state.consoleFilterLevel = btn.dataset.level || 'ALL';
+      renderConsoleLogs();
+    });
+  });
 
-        if (runBanner) {
-          runBanner.style.display = 'flex';
-          runBanner.style.background = '#eff6ff';
-          runBanner.style.borderColor = '#bfdbfe';
-          runBanner.style.color = '#1e40af';
-        }
-        if (statusText) statusText.textContent = data.message || 'Pipeline execution in progress...';
+  // Search input
+  const searchInput = document.getElementById('consoleSearchInput');
+  const searchClear = document.getElementById('consoleSearchClearBtn');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      state.consoleSearchQuery = (e.target.value || '').trim();
+      if (searchClear) searchClear.style.display = state.consoleSearchQuery ? 'inline' : 'none';
+      renderConsoleLogs();
+    });
+  }
+  if (searchClear && searchInput) {
+    searchClear.addEventListener('click', () => {
+      searchInput.value = '';
+      state.consoleSearchQuery = '';
+      searchClear.style.display = 'none';
+      renderConsoleLogs();
+    });
+  }
 
-        startTime = Date.now();
-        if (timerInterval) clearInterval(timerInterval);
-        timerInterval = setInterval(() => {
-          const sec = Math.floor((Date.now() - startTime) / 1000);
-          if (timerText) timerText.textContent = `Elapsed: ${sec}s`;
-        }, 1000);
-
-        // Poll pipeline status every 3s
-        if (pollInterval) clearInterval(pollInterval);
-        pollInterval = setInterval(async () => {
-          try {
-            const statResp = await fetch('/api/ops/pipeline-status');
-            if (statResp.ok) {
-              const status = await statResp.json();
-              if (status.current_stage && statusText) {
-                statusText.textContent = `Stage ${status.stage_index || '1'}/4: ${status.current_stage}`;
-              }
-              if (triggerText) {
-                triggerText.textContent = `Running (${status.stage_index || 1}/4)...`;
-              }
-
-              highlightDagStage(status.stage_index);
-
-              if (!status.is_running) {
-                clearInterval(pollInterval);
-                clearInterval(timerInterval);
-                pollInterval = null;
-                timerInterval = null;
-
-                if (status.last_status === 'success') {
-                  if (statusText) statusText.textContent = '✓ Pipeline execution completed successfully. Data synchronized.';
-                  if (triggerText) triggerText.textContent = '✓ Complete';
-                  if (runBanner) {
-                    runBanner.style.background = '#f0fdf4';
-                    runBanner.style.borderColor = '#bbf7d0';
-                    runBanner.style.color = '#15803d';
-                  }
-                } else {
-                  if (statusText) statusText.textContent = `Pipeline finished: ${status.last_error || 'Check logs'}`;
-                  if (triggerText) triggerText.textContent = 'Run Finished';
-                }
-
-                // Refresh telemetry, stats, and jobs
-                loadOpsTelemetry();
-                loadStats();
-                loadJobs();
-
-                setTimeout(() => {
-                  triggerBtn.disabled = false;
-                  triggerBtn.style.opacity = '1';
-                  triggerBtn.style.cursor = 'pointer';
-                  if (triggerText) triggerText.textContent = 'Rerun Full Pipeline';
-                  if (runBanner) runBanner.style.display = 'none';
-                  resetDagHighlight();
-                }, 4000);
-              }
-            }
-          } catch (pollErr) {
-            console.warn('Status poll error:', pollErr);
-          }
-        }, 3000);
-
-      } catch (err) {
-        alert(`Failed to trigger pipeline: ${err.message}`);
-        triggerBtn.disabled = false;
-        triggerBtn.style.opacity = '1';
-        triggerBtn.style.cursor = 'pointer';
-        if (triggerText) triggerText.textContent = 'Rerun Full Pipeline';
-        if (runBanner) runBanner.style.display = 'none';
+  // Auto-scroll toggle
+  const autoScrollBtn = document.getElementById('consoleAutoScrollBtn');
+  const autoScrollText = document.getElementById('consoleAutoScrollText');
+  if (autoScrollBtn) {
+    autoScrollBtn.addEventListener('click', () => {
+      state.consoleAutoScroll = !state.consoleAutoScroll;
+      autoScrollBtn.classList.toggle('active', state.consoleAutoScroll);
+      if (autoScrollText) {
+        autoScrollText.textContent = state.consoleAutoScroll ? 'Auto-scroll ON' : 'Auto-scroll PAUSED';
+      }
+      if (state.consoleAutoScroll) {
+        scrollConsoleToBottom();
+        const jumpBtn = document.getElementById('consoleJumpBottomBtn');
+        if (jumpBtn) jumpBtn.style.display = 'none';
       }
     });
+  }
+
+  // Copy logs button
+  const copyBtn = document.getElementById('consoleCopyBtn');
+  const copyText = document.getElementById('consoleCopyText');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', async () => {
+      const filtered = getFilteredLogs();
+      if (!filtered.length) {
+        alert('No logs currently visible to copy.');
+        return;
+      }
+      const textBlob = filtered.map(l => `[${formatLogTime(l.timestamp)}] [${l.level}] [${l.source || 'orchestrator'}] ${l.message}`).join('\n');
+      try {
+        await navigator.clipboard.writeText(textBlob);
+        if (copyText) copyText.textContent = '✓ Copied!';
+        setTimeout(() => {
+          if (copyText) copyText.textContent = 'Copy';
+        }, 2000);
+      } catch (err) {
+        console.warn('Clipboard write failed:', err);
+      }
+    });
+  }
+
+  // Clear logs button
+  const clearBtn = document.getElementById('consoleClearBtn');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', async () => {
+      state.pipelineLogs = [];
+      state.lastLogTimestamp = null;
+      renderConsoleLogs();
+      try {
+        await fetch('/api/ops/pipeline-logs/clear', { method: 'POST' });
+      } catch {
+        // graceful
+      }
+    });
+  }
+
+  // Expand / collapse height
+  const toggleHeightBtn = document.getElementById('consoleToggleHeightBtn');
+  const consoleCard = document.getElementById('pipelineConsoleCard');
+  if (toggleHeightBtn && consoleCard) {
+    toggleHeightBtn.addEventListener('click', () => {
+      state.consoleExpanded = !state.consoleExpanded;
+      consoleCard.classList.toggle('expanded', state.consoleExpanded);
+    });
+  }
+
+  // Jump to bottom banner
+  const jumpBtn = document.getElementById('consoleJumpBottomBtn');
+  if (jumpBtn) {
+    jumpBtn.addEventListener('click', () => {
+      state.consoleAutoScroll = true;
+      if (autoScrollBtn) autoScrollBtn.classList.add('active');
+      if (autoScrollText) autoScrollText.textContent = 'Auto-scroll ON';
+      scrollConsoleToBottom();
+      jumpBtn.style.display = 'none';
+    });
+  }
+
+  // Viewport scroll listener for smart pause
+  const viewport = document.getElementById('consoleTerminalViewport');
+  if (viewport) {
+    viewport.addEventListener('scroll', () => {
+      const isAtBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight <= 25;
+      if (!isAtBottom && state.consoleAutoScroll) {
+        state.consoleAutoScroll = false;
+        if (autoScrollBtn) autoScrollBtn.classList.remove('active');
+        if (autoScrollText) autoScrollText.textContent = 'Auto-scroll PAUSED';
+      } else if (isAtBottom && !state.consoleAutoScroll) {
+        if (jumpBtn) jumpBtn.style.display = 'none';
+      }
+    });
+  }
+}
+
+function getFilteredLogs() {
+  const level = state.consoleFilterLevel || 'ALL';
+  const query = (state.consoleSearchQuery || '').toLowerCase();
+  return (state.pipelineLogs || []).filter(l => {
+    if (level !== 'ALL' && l.level !== level) return false;
+    if (query) {
+      const msg = (l.message || '').toLowerCase();
+      const src = (l.source || '').toLowerCase();
+      if (!msg.includes(query) && !src.includes(query)) return false;
+    }
+    return true;
+  });
+}
+
+function formatLogTime(ts) {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return String(ts).slice(11, 23);
+    const h = String(d.getHours()).padStart(2, '0');
+    const m = String(d.getMinutes()).padStart(2, '0');
+    const s = String(d.getSeconds()).padStart(2, '0');
+    const ms = String(d.getMilliseconds()).padStart(3, '0');
+    return `${h}:${m}:${s}.${ms}`;
+  } catch {
+    return String(ts);
+  }
+}
+
+function renderConsoleLogs() {
+  const viewport = document.getElementById('consoleTerminalViewport');
+  const countPill = document.getElementById('consoleLogCount');
+  if (!viewport) return;
+
+  const filtered = getFilteredLogs();
+  const total = (state.pipelineLogs || []).length;
+  if (countPill) {
+    countPill.textContent = filtered.length === total ? `${total} events` : `${filtered.length} / ${total} events`;
+  }
+
+  if (filtered.length === 0) {
+    if (total === 0) {
+      viewport.innerHTML = `
+        <div class="terminal-empty-state" id="consoleEmptyState">
+          <div class="terminal-prompt-sym">&gt;</div>
+          <div>Terminal ready. Live Prefect worker logs, web spider crawls, and ETL transactions stream here in real-time. Click <strong>Rerun Full Pipeline</strong> above to start.</div>
+        </div>
+      `;
+    } else {
+      viewport.innerHTML = `
+        <div class="terminal-empty-state">
+          <div class="terminal-prompt-sym">&gt;</div>
+          <div>No logs match current filter (level: ${escapeHtml(state.consoleFilterLevel)}, query: "${escapeHtml(state.consoleSearchQuery)}").</div>
+        </div>
+      `;
+    }
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  filtered.forEach(l => {
+    const row = document.createElement('div');
+    row.className = 'terminal-log-line';
+
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'log-time';
+    timeSpan.textContent = formatLogTime(l.timestamp);
+
+    const badgeSpan = document.createElement('span');
+    const lvl = (l.level || 'INFO').toLowerCase();
+    badgeSpan.className = `log-badge ${lvl}`;
+    badgeSpan.textContent = l.level || 'INFO';
+
+    const srcSpan = document.createElement('span');
+    srcSpan.className = 'log-source';
+    srcSpan.textContent = `[${l.source || 'orchestrator'}]`;
+
+    const msgSpan = document.createElement('span');
+    msgSpan.className = 'log-msg';
+    
+    let safeMsg = escapeHtml(l.message || '');
+    safeMsg = safeMsg.replace(/(jobs=\d+|mined \d+|\d+ JDs|\d+ candidate skills)/gi, '<span class="highlight-num">$1</span>');
+    safeMsg = safeMsg.replace(/(\[success\]|completed|finished in state completed\(\))/gi, '<span class="highlight-success">$1</span>');
+    msgSpan.innerHTML = safeMsg;
+
+    row.appendChild(timeSpan);
+    row.appendChild(badgeSpan);
+    row.appendChild(srcSpan);
+    row.appendChild(msgSpan);
+    fragment.appendChild(row);
+  });
+
+  viewport.innerHTML = '';
+  viewport.appendChild(fragment);
+
+  if (state.consoleAutoScroll) {
+    scrollConsoleToBottom();
+  }
+}
+
+function scrollConsoleToBottom() {
+  const viewport = document.getElementById('consoleTerminalViewport');
+  if (viewport) {
+    viewport.scrollTop = viewport.scrollHeight;
+  }
+}
+
+async function fetchNewLogs() {
+  try {
+    const url = state.lastLogTimestamp
+      ? `/api/ops/pipeline-logs?limit=300&since=${encodeURIComponent(state.lastLogTimestamp)}`
+      : `/api/ops/pipeline-logs?limit=300`;
+    const resp = await fetch(url);
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const newItems = data.logs || [];
+    if (!newItems.length) return;
+
+    const existingIds = new Set((state.pipelineLogs || []).map(l => l.id || `${l.timestamp}-${l.message}`));
+    let addedCount = 0;
+    newItems.forEach(item => {
+      const key = item.id || `${item.timestamp}-${item.message}`;
+      if (!existingIds.has(key)) {
+        state.pipelineLogs.push(item);
+        existingIds.add(key);
+        addedCount++;
+        if (item.timestamp && (!state.lastLogTimestamp || item.timestamp > state.lastLogTimestamp)) {
+          state.lastLogTimestamp = item.timestamp;
+        }
+      }
+    });
+
+    if (addedCount > 0) {
+      if (state.pipelineLogs.length > 2000) {
+        state.pipelineLogs = state.pipelineLogs.slice(-2000);
+      }
+      renderConsoleLogs();
+
+      if (!state.consoleAutoScroll) {
+        const jumpBtn = document.getElementById('consoleJumpBottomBtn');
+        if (jumpBtn) jumpBtn.style.display = 'block';
+      }
+    }
+  } catch (err) {
+    console.debug('Logs poll error:', err);
+  }
+}
+
+async function checkActivePipelineRun() {
+  try {
+    const statResp = await fetch('/api/ops/pipeline-status');
+    if (!statResp.ok) return;
+    const status = await statResp.json();
+    state.pipelineStatus = status;
+
+    updatePipelineProgressUI(status);
+    await fetchNewLogs();
+
+    if (status.is_running) {
+      resumeActivePipelinePolling();
+    }
+  } catch (err) {
+    console.warn('Initial pipeline check failed:', err);
+  }
+}
+
+function resumeActivePipelinePolling() {
+  const triggerBtn = document.getElementById('btnTriggerPipeline');
+  const triggerText = document.getElementById('btnTriggerPipelineText');
+  const progressSection = document.getElementById('pipelineProgressSection');
+  const liveIndicator = document.getElementById('consoleLiveIndicator');
+  const liveText = document.getElementById('consoleLiveText');
+
+  if (progressSection) progressSection.style.display = 'flex';
+  if (triggerBtn) {
+    triggerBtn.disabled = true;
+    triggerBtn.style.opacity = '0.7';
+    triggerBtn.style.cursor = 'wait';
+  }
+  if (triggerText) {
+    triggerText.textContent = `Running (${state.pipelineStatus?.stage_index || 1}/4)...`;
+  }
+  if (liveIndicator) {
+    liveIndicator.className = 'console-live-pill active';
+    if (liveText) liveText.textContent = 'LIVE STREAMING';
+  }
+
+  if (state.pipelinePollInterval) clearInterval(state.pipelinePollInterval);
+  state.pipelinePollInterval = setInterval(async () => {
+    try {
+      const resp = await fetch('/api/ops/pipeline-status');
+      if (resp.ok) {
+        const status = await resp.json();
+        state.pipelineStatus = status;
+        updatePipelineProgressUI(status);
+
+        if (!status.is_running) {
+          handlePipelineRunFinished(status);
+        }
+      }
+    } catch (err) {
+      console.warn('Pipeline status poll error:', err);
+    }
+  }, 2500);
+
+  if (state.pipelineLogsPollInterval) clearInterval(state.pipelineLogsPollInterval);
+  state.pipelineLogsPollInterval = setInterval(fetchNewLogs, 1500);
+}
+
+function updatePipelineProgressUI(status) {
+  if (!status) return;
+
+  const progressSection = document.getElementById('pipelineProgressSection');
+  const stageTitle = document.getElementById('pipelineStageTitle');
+  const progressPct = document.getElementById('pipelineProgressPct');
+  const progressBar = document.getElementById('pipelineProgressBar');
+  const timerText = document.getElementById('pipelineRunTimer');
+  const triggerText = document.getElementById('btnTriggerPipelineText');
+  const prefectLink = document.getElementById('consolePrefectLink');
+
+  if (status.is_running && progressSection) {
+    progressSection.style.display = 'flex';
+  }
+
+  if (stageTitle) {
+    stageTitle.textContent = status.current_stage
+      ? `Stage ${status.stage_index || 1}/4: ${status.current_stage}`
+      : 'Pipeline idle';
+  }
+
+  const pct = Math.min(status.progress_percent || 0, 100);
+  if (progressPct) progressPct.textContent = `${pct}%`;
+  if (progressBar) {
+    progressBar.style.width = `${pct}%`;
+    progressBar.classList.toggle('active', !!status.is_running);
+  }
+
+  if (timerText) {
+    const elapsed = status.elapsed_seconds || 0;
+    timerText.textContent = `Elapsed: ${Math.floor(elapsed)}s`;
+  }
+
+  if (triggerText && status.is_running) {
+    triggerText.textContent = `Running (${status.stage_index || 1}/4)...`;
+  }
+
+  if (prefectLink) {
+    if (status.active_flow_run_id) {
+      prefectLink.href = `http://localhost:4200/runs/flow-run/${status.active_flow_run_id}`;
+      prefectLink.title = `Inspect flow run ${status.active_flow_run_id} in Prefect 3 UI`;
+    } else {
+      prefectLink.href = 'http://localhost:4200';
+    }
+  }
+
+  // Stepper Cards
+  if (Array.isArray(status.stages)) {
+    status.stages.forEach(st => {
+      const stepEl = document.getElementById(`stepperStep${st.id}`);
+      const badgeEl = document.getElementById(`stepBadge${st.id}`);
+      const subEl = document.getElementById(`stepSub${st.id}`);
+      if (stepEl && badgeEl) {
+        stepEl.classList.remove('active', 'completed', 'failed');
+        if (st.status === 'running') {
+          stepEl.classList.add('active');
+          badgeEl.textContent = 'Running...';
+        } else if (st.status === 'completed') {
+          stepEl.classList.add('completed');
+          badgeEl.textContent = st.duration_seconds ? `✓ ${st.duration_seconds}s` : '✓ Done';
+        } else if (st.status === 'failed') {
+          stepEl.classList.add('failed');
+          badgeEl.textContent = 'Failed';
+        } else if (st.status === 'skipped') {
+          badgeEl.textContent = 'Skipped';
+        } else {
+          badgeEl.textContent = 'Pending';
+        }
+        if (subEl && st.summary) {
+          subEl.textContent = st.summary;
+        }
+      }
+    });
+  }
+
+  highlightDagStage(status.stage_index);
+  updateDagBadges(status);
+}
+
+function updateDagBadges(status) {
+  const spiderBadge = document.getElementById('nodeSpiderBadge');
+  const streamBadge = document.getElementById('nodeStreamBadge');
+  const prefectBadge = document.getElementById('nodePrefectBadge');
+  const storesBadge = document.getElementById('nodeStoresBadge');
+
+  if (!status.is_running) {
+    if (spiderBadge) spiderBadge.textContent = 'Idle';
+    if (streamBadge) streamBadge.textContent = 'Online';
+    return;
+  }
+
+  const idx = status.stage_index || 1;
+  if (spiderBadge) {
+    if (idx === 2) {
+      spiderBadge.textContent = 'Crawling...';
+      spiderBadge.className = 'badge-status warning';
+    } else if (idx > 2) {
+      spiderBadge.textContent = '✓ Crawled';
+      spiderBadge.className = 'badge-status success';
+    } else {
+      spiderBadge.textContent = 'Queued';
+      spiderBadge.className = 'badge-status';
+    }
+  }
+
+  if (streamBadge) {
+    streamBadge.textContent = idx >= 2 ? 'Active Stream' : 'Online';
+  }
+
+  if (prefectBadge) {
+    if (idx === 3) {
+      prefectBadge.textContent = 'ETL Syncing...';
+      prefectBadge.className = 'badge-status warning';
+    } else if (idx > 3) {
+      prefectBadge.textContent = '✓ Transformed';
+      prefectBadge.className = 'badge-status success';
+    } else {
+      prefectBadge.textContent = 'Healthy';
+      prefectBadge.className = 'badge-status success';
+    }
+  }
+
+  if (storesBadge) {
+    storesBadge.textContent = idx >= 3 ? 'Writing Stores' : 'Connected';
+  }
+}
+
+function handlePipelineRunFinished(status) {
+  if (state.pipelinePollInterval) {
+    clearInterval(state.pipelinePollInterval);
+    state.pipelinePollInterval = null;
+  }
+  if (state.pipelineLogsPollInterval) {
+    clearInterval(state.pipelineLogsPollInterval);
+    state.pipelineLogsPollInterval = null;
+  }
+
+  fetchNewLogs();
+
+  const triggerBtn = document.getElementById('btnTriggerPipeline');
+  const triggerText = document.getElementById('btnTriggerPipelineText');
+  const liveIndicator = document.getElementById('consoleLiveIndicator');
+  const liveText = document.getElementById('consoleLiveText');
+  const stageTitle = document.getElementById('pipelineStageTitle');
+
+  if (status.last_status === 'success') {
+    if (stageTitle) stageTitle.textContent = '✓ Pipeline completed successfully. All data synchronized.';
+    if (triggerText) triggerText.textContent = '✓ Complete';
+  } else {
+    if (stageTitle) stageTitle.textContent = `Pipeline finished: ${status.last_error || 'Check logs'}`;
+    if (triggerText) triggerText.textContent = 'Run Finished';
+  }
+
+  if (liveIndicator) {
+    liveIndicator.className = 'console-live-pill';
+    if (liveText) liveText.textContent = 'COMPLETED / RETAINED';
+  }
+
+  loadOpsTelemetry();
+  loadStats();
+  loadJobs();
+
+  setTimeout(() => {
+    if (triggerBtn) {
+      triggerBtn.disabled = false;
+      triggerBtn.style.opacity = '1';
+      triggerBtn.style.cursor = 'pointer';
+    }
+    if (triggerText) triggerText.textContent = 'Rerun Full Pipeline';
+  }, 4000);
+}
+
+async function startPipelineRun(mode = 'full') {
+  const triggerBtn = document.getElementById('btnTriggerPipeline');
+  const triggerText = document.getElementById('btnTriggerPipelineText');
+
+  try {
+    if (triggerBtn) {
+      triggerBtn.disabled = true;
+      triggerBtn.style.opacity = '0.7';
+      triggerBtn.style.cursor = 'wait';
+    }
+    if (triggerText) triggerText.textContent = 'Starting Pipeline...';
+
+    state.pipelineLogs = [];
+    state.lastLogTimestamp = null;
+    renderConsoleLogs();
+
+    const resp = await fetch('/api/ops/trigger-pipeline', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode }),
+    });
+    const data = await resp.json();
+
+    state.pipelineStatus = {
+      is_running: true,
+      current_stage: data.message || 'Starting orchestration...',
+      stage_index: 1,
+      progress_percent: 5,
+      elapsed_seconds: 0,
+    };
+
+    resumeActivePipelinePolling();
+  } catch (err) {
+    alert(`Failed to trigger pipeline: ${err.message}`);
+    if (triggerBtn) {
+      triggerBtn.disabled = false;
+      triggerBtn.style.opacity = '1';
+      triggerBtn.style.cursor = 'pointer';
+    }
+    if (triggerText) triggerText.textContent = 'Rerun Full Pipeline';
   }
 }
 

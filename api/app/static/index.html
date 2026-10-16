@@ -313,22 +313,67 @@
             </div>
           </div>
 
-          <!-- Live Pipeline Execution Progress Banner -->
-          <div id="pipelineRunBanner" style="display: none; margin: 12px 16px 0 16px; padding: 10px 14px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; font-size: 12px; color: #1e40af; display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span class="status-dot" style="background: #2563eb;"></span>
-              <span id="pipelineRunStatusText" style="font-weight: 500;">Pipeline Active: Spiders extracting live postings...</span>
+          <!-- Dynamic Pipeline Progress & Execution Stepper -->
+          <div id="pipelineProgressSection" class="pipeline-progress-section" style="display: none;">
+            <div class="pipeline-progress-meta">
+              <div class="progress-title-wrap">
+                <span class="pipeline-pulse-dot" id="pipelinePulseDot"></span>
+                <span id="pipelineStageTitle" class="pipeline-stage-title">Pipeline Inactive</span>
+              </div>
+              <div class="progress-stats-wrap">
+                <span id="pipelineProgressPct" class="progress-pct-badge">0%</span>
+                <span id="pipelineRunTimer" class="pipeline-timer">Elapsed: 0s</span>
+              </div>
             </div>
-            <span style="font-family: var(--font-mono); font-size: 11px; color: #3b82f6;" id="pipelineRunTimer">Elapsed: 0s</span>
+            <div class="pipeline-progress-track">
+              <div id="pipelineProgressBar" class="pipeline-progress-fill" style="width: 0%;"></div>
+            </div>
+            <div class="pipeline-stepper-grid">
+              <div class="stepper-step" id="stepperStep1">
+                <div class="step-header">
+                  <span class="step-num">1</span>
+                  <span class="step-name">Master Dimensions</span>
+                  <span class="step-badge" id="stepBadge1">Idle</span>
+                </div>
+                <span class="step-sub" id="stepSub1">Skills, Portals &amp; Dimensions</span>
+              </div>
+              <div class="stepper-step" id="stepperStep2">
+                <div class="step-header">
+                  <span class="step-num">2</span>
+                  <span class="step-name">Web Spiders (Extract)</span>
+                  <span class="step-badge" id="stepBadge2">Idle</span>
+                </div>
+                <span class="step-sub" id="stepSub2">14 Portals -&gt; raw-jobs stream</span>
+              </div>
+              <div class="stepper-step" id="stepperStep3">
+                <div class="step-header">
+                  <span class="step-num">3</span>
+                  <span class="step-name">Stream ETL (Load)</span>
+                  <span class="step-badge" id="stepBadge3">Idle</span>
+                </div>
+                <span class="step-sub" id="stepSub3">Postgres, ES, MinIO Multi-Store</span>
+              </div>
+              <div class="stepper-step" id="stepperStep4">
+                <div class="step-header">
+                  <span class="step-num">4</span>
+                  <span class="step-name">Analytics &amp; Mining</span>
+                  <span class="step-badge" id="stepBadge4">Idle</span>
+                </div>
+                <span class="step-sub" id="stepSub4">Skill Taxonomy &amp; Snapshot</span>
+              </div>
+            </div>
           </div>
 
+          <!-- Legacy notification banner preserved for backward compatibility -->
+          <div id="pipelineRunBanner" style="display: none;"></div>
+
           <div class="pipeline-diagram">
-            <div class="dag-node">
+            <div class="dag-node" id="dagNode1">
               <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <span class="dag-node-title">1. Web Spiders</span>
-                <span class="badge-status" style="background: var(--bg-subtle); color: var(--text-secondary); border: 1px solid var(--border-default);">Idle</span>
+                <span class="badge-status" id="nodeSpiderBadge" style="background: var(--bg-subtle); color: var(--text-secondary); border: 1px solid var(--border-default);">Idle</span>
               </div>
-              <span class="dag-node-sub">14 Portals (2 Run / 12 Standby)</span>
+              <span class="dag-node-sub" id="dagNodeSub1">14 Portals (2 Run / 12 Standby)</span>
             </div>
             
             <div class="dag-arrow" aria-hidden="true">
@@ -338,12 +383,12 @@
               </svg>
             </div>
 
-            <div class="dag-node">
+            <div class="dag-node" id="dagNode2">
               <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <span class="dag-node-title">2. Dragonfly Stream</span>
-                <span class="badge-status success">Online</span>
+                <span class="badge-status success" id="nodeStreamBadge">Online</span>
               </div>
-              <span class="dag-node-sub">raw-jobs (0 Lag)</span>
+              <span class="dag-node-sub" id="dagNodeSub2">raw-jobs (0 Lag)</span>
             </div>
             
             <div class="dag-arrow" aria-hidden="true">
@@ -353,12 +398,12 @@
               </svg>
             </div>
 
-            <div class="dag-node">
+            <div class="dag-node" id="dagNode3">
               <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <span class="dag-node-title">3. Prefect 3 ETL</span>
-                <span class="badge-status success">Healthy</span>
+                <span class="badge-status success" id="nodePrefectBadge">Healthy</span>
               </div>
-              <span class="dag-node-sub">Transform &amp; Validate</span>
+              <span class="dag-node-sub" id="dagNodeSub3">Transform &amp; Validate</span>
             </div>
             
             <div class="dag-arrow" aria-hidden="true">
@@ -368,12 +413,12 @@
               </svg>
             </div>
 
-            <div class="dag-node">
+            <div class="dag-node" id="dagNode4">
               <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <span class="dag-node-title">4. Multi-Stores</span>
-                <span class="badge-status success">Connected</span>
+                <span class="badge-status success" id="nodeStoresBadge">Connected</span>
               </div>
-              <span class="dag-node-sub">Postgres • ES • MinIO</span>
+              <span class="dag-node-sub" id="dagNodeSub4">Postgres • ES • MinIO</span>
             </div>
             
             <div class="dag-arrow" aria-hidden="true">
@@ -383,12 +428,111 @@
               </svg>
             </div>
 
-            <div class="dag-node">
+            <div class="dag-node" id="dagNode5">
               <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <span class="dag-node-title">5. Serving API</span>
-                <span class="badge-status success">Online</span>
+                <span class="badge-status success" id="nodeApiBadge">Online</span>
               </div>
-              <span class="dag-node-sub">FastAPI + Vector Search</span>
+              <span class="dag-node-sub" id="dagNodeSub5">FastAPI + Vector Search</span>
+            </div>
+          </div>
+
+          <!-- Dedicated Pipeline Live Telemetry & Log Console (Industrial Terminal) -->
+          <div class="pipeline-console-card" id="pipelineConsoleCard">
+            <div class="console-header">
+              <div class="console-title-area">
+                <div class="terminal-badge-icon" aria-hidden="true">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="4 17 10 11 4 5"></polyline>
+                    <line x1="12" y1="19" x2="20" y2="19"></line>
+                  </svg>
+                </div>
+                <span class="console-title">Pipeline Execution Telemetry &amp; Live Logs</span>
+                <span id="consoleLiveIndicator" class="console-live-pill">
+                  <span class="console-live-dot"></span>
+                  <span id="consoleLiveText">IDLE / RETAINED</span>
+                </span>
+                <span id="consoleLogCount" class="console-count-pill">0 events</span>
+              </div>
+
+              <div class="console-toolbar">
+                <!-- Log Level Filters -->
+                <div class="console-btn-group" role="group" aria-label="Log level filter">
+                  <button class="console-filter-btn active" data-level="ALL">ALL</button>
+                  <button class="console-filter-btn" data-level="INFO">INFO</button>
+                  <button class="console-filter-btn" data-level="SUCCESS">SUCCESS</button>
+                  <button class="console-filter-btn" data-level="WARN">WARN</button>
+                  <button class="console-filter-btn" data-level="ERROR">ERROR</button>
+                </div>
+
+                <!-- Search Filter -->
+                <div class="console-search-box">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input type="text" id="consoleSearchInput" placeholder="Filter logs (e.g. greenhouse, jobs=)..." />
+                  <button id="consoleSearchClearBtn" class="search-clear-btn" title="Clear filter" style="display:none;">&times;</button>
+                </div>
+
+                <!-- Console Actions -->
+                <button id="consoleAutoScrollBtn" class="console-action-btn active" title="Toggle automatic scrolling to latest log">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="7 13 12 18 17 13"></polyline>
+                    <polyline points="7 6 12 11 17 6"></polyline>
+                  </svg>
+                  <span id="consoleAutoScrollText">Auto-scroll ON</span>
+                </button>
+
+                <button id="consoleCopyBtn" class="console-action-btn" title="Copy visible logs to clipboard">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span id="consoleCopyText">Copy</span>
+                </button>
+
+                <button id="consoleClearBtn" class="console-action-btn" title="Clear console buffer">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                  </svg>
+                  <span>Clear</span>
+                </button>
+
+                <a id="consolePrefectLink" href="http://localhost:4200" target="_blank" rel="noopener noreferrer" class="console-action-btn link" title="Open flow runs in Prefect 3 Web Dashboard">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                  <span>Prefect UI ↗</span>
+                </a>
+
+                <button id="consoleToggleHeightBtn" class="console-action-btn icon-only" title="Toggle full-screen / expanded terminal view">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="consoleToggleHeightIcon">
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <polyline points="9 21 3 21 3 15"></polyline>
+                    <line x1="21" y1="3" x2="14" y2="10"></line>
+                    <line x1="3" y1="21" x2="10" y2="14"></line>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Console Viewport -->
+            <div class="console-viewport-wrap">
+              <div id="consoleTerminalViewport" class="console-terminal-body">
+                <div class="terminal-empty-state" id="consoleEmptyState">
+                  <div class="terminal-prompt-sym">&gt;</div>
+                  <div>Terminal ready. Live Prefect worker logs, web spider crawls, and ETL transactions stream here in real-time. Click <strong>Rerun Full Pipeline</strong> above to start.</div>
+                </div>
+              </div>
+
+              <!-- Floating Jump to Bottom Banner when auto-scroll is paused -->
+              <button id="consoleJumpBottomBtn" class="console-jump-bottom-btn" style="display: none;">
+                ↓ New logs incoming • Click to scroll to latest
+              </button>
             </div>
           </div>
         </div>
