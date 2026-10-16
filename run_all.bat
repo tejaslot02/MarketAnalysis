@@ -34,17 +34,37 @@ if not exist "%REPO_ROOT%.env" (
     echo [INFO] Created .env configuration file.
 )
 
-:: 2. Detect Python runner
+:: 2. Detect Python runner and ensure virtual environment
 where uv >nul 2>nul
 if %ERRORLEVEL% equ 0 (
     set "RUNNER=uv run"
     echo [INFO] Detected uv runtime.
-) else if exist "%REPO_ROOT%.venv\Scripts\python.exe" (
-    set "RUNNER=%REPO_ROOT%.venv\Scripts\python.exe"
-    echo [INFO] Detected virtualenv runtime in .venv
 ) else (
-    set "RUNNER=python"
-    echo [INFO] Using system python runtime.
+    if not exist "%REPO_ROOT%.venv\Scripts\python.exe" (
+        where python >nul 2>nul
+        if %ERRORLEVEL% equ 0 (
+            echo [INFO] Initializing Python virtual environment in .venv...
+            python -m venv "%REPO_ROOT%.venv"
+        )
+    )
+    if exist "%REPO_ROOT%.venv\Scripts\python.exe" (
+        set "RUNNER=%REPO_ROOT%.venv\Scripts\python.exe"
+        echo [INFO] Detected virtualenv runtime in .venv
+    ) else (
+        set "RUNNER=python"
+        echo [INFO] Using system python runtime.
+    )
+)
+
+:: Ensure required pipeline dependencies (httpx, pyyaml) are installed
+%RUNNER% -c "import httpx, yaml" >nul 2>nul
+if %ERRORLEVEL% neq 0 (
+    echo [INFO] Installing required dependencies: httpx, pyyaml...
+    if exist "%REPO_ROOT%requirements.txt" (
+        %RUNNER% -m pip install -r "%REPO_ROOT%requirements.txt"
+    ) else (
+        %RUNNER% -m pip install httpx pyyaml
+    )
 )
 
 :: 3. Check Docker status
@@ -159,6 +179,40 @@ echo ======================================================================
 echo              PIPELINE EXECUTION COMPLETED SUCCESSFULLY
 echo ======================================================================
 echo.
+if "%HAS_DOCKER%"=="1" goto :SHOW_DOCKER_LINKS
+
+:SHOW_STANDALONE_LINKS
+echo  LIVE WEB AND API INTERFACES (DIRECT MODE):
+echo  --------------------------------------------------------------------
+echo  [*] Web Application (Job Se)   : http://localhost:8000/
+echo  [1] Live Ingested Jobs API     : http://localhost:8000/jobs
+echo  [2] $150K+ Remote Jobs Filter  : http://localhost:8000/jobs?min_salary=150000^&remote=true
+echo  [3] API Health Status Check    : http://localhost:8000/health
+echo  [4] Market Statistics API      : http://localhost:8000/stats
+echo.
+echo  DATA PLATFORM CLUSTERS:
+echo  --------------------------------------------------------------------
+echo  [i] Distributed clusters (Postgres, Dragonfly, MinIO, ES, Prefect)
+echo      run in Docker Mode. To launch distributed stack, start Docker Desktop.
+echo.
+echo  LOCAL DATASET EXPORT:
+echo  --------------------------------------------------------------------
+echo  [5] Enriched JSON File        : data\real_jobs_enriched.json
+echo.
+echo ======================================================================
+echo.
+if "!OPEN_BROWSER!"=="1" (
+    echo [INFO] Launching Job Se Web Application at http://localhost:8000/...
+    start "" "http://localhost:8000/"
+)
+echo [INFO] Web Application server is actively running on http://localhost:8000/
+echo [INFO] Press Ctrl+C in this terminal window when you wish to stop the server.
+echo.
+if "!NO_PAUSE!"=="1" goto :END
+%RUNNER% scripts/serve_local_ui.py 8000
+goto :END
+
+:SHOW_DOCKER_LINKS
 echo  LIVE WEB AND API INTERFACES:
 echo  --------------------------------------------------------------------
 echo  [*] Web Application (Job Se)   : http://localhost:8000/
@@ -176,17 +230,21 @@ echo      Credentials                : minioadmin / minioadmin
 echo  [8] Elasticsearch Search API   : http://localhost:9200/jobs/_search?pretty
 echo  [9] Elasticsearch Job Count    : http://localhost:9200/jobs/_count
 echo.
+
+:SHOW_COMMON_LINKS
 echo  LOCAL DATASET EXPORT:
 echo  --------------------------------------------------------------------
 echo  [10] Enriched JSON File        : data\real_jobs_enriched.json
 echo.
 echo ======================================================================
 
-:: Launch default browser to http://localhost:8000/
-if "!OPEN_BROWSER!"=="1" (
-    echo.
-    echo [INFO] Opening default browser to http://localhost:8000/...
-    start "" "http://localhost:8000/"
+:: Launch default browser if web stack is active
+if "%HAS_DOCKER%"=="1" (
+    if "!OPEN_BROWSER!"=="1" (
+        echo.
+        echo [INFO] Opening default browser to http://localhost:8000/...
+        start "" "http://localhost:8000/"
+    )
 )
 
 if "!NO_PAUSE!"=="1" goto :END

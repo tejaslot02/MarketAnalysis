@@ -33,19 +33,44 @@ if [ ! -f "$REPO_ROOT/.env" ]; then
     echo "[INFO] Created .env configuration file."
 fi
 
-# 2. Detect Python runner
+# 2. Detect Python runner and ensure virtual environment
 if command -v uv >/dev/null 2>&1; then
     RUNNER="uv run"
     echo "[INFO] Detected uv runtime."
 elif [ -f "$REPO_ROOT/.venv/bin/python" ]; then
     RUNNER="$REPO_ROOT/.venv/bin/python"
     echo "[INFO] Detected virtualenv runtime in .venv."
+elif [ -f "$REPO_ROOT/.venv/Scripts/python.exe" ]; then
+    RUNNER="$REPO_ROOT/.venv/Scripts/python.exe"
+    echo "[INFO] Detected virtualenv runtime in .venv."
 elif command -v python3 >/dev/null 2>&1; then
-    RUNNER="python3"
-    echo "[INFO] Using python3 runtime."
+    if [ ! -d "$REPO_ROOT/.venv" ]; then
+        echo "[INFO] Initializing Python virtual environment in .venv..."
+        python3 -m venv "$REPO_ROOT/.venv" 2>/dev/null || true
+    fi
+    if [ -f "$REPO_ROOT/.venv/bin/python" ]; then
+        RUNNER="$REPO_ROOT/.venv/bin/python"
+        echo "[INFO] Detected virtualenv runtime in .venv."
+    elif [ -f "$REPO_ROOT/.venv/Scripts/python.exe" ]; then
+        RUNNER="$REPO_ROOT/.venv/Scripts/python.exe"
+        echo "[INFO] Detected virtualenv runtime in .venv."
+    else
+        RUNNER="python3"
+        echo "[INFO] Using python3 runtime."
+    fi
 else
     RUNNER="python"
     echo "[INFO] Using system python runtime."
+fi
+
+# Ensure required pipeline dependencies (httpx, pyyaml) are installed
+if ! $RUNNER -c "import httpx, yaml" >/dev/null 2>&1; then
+    echo "[INFO] Installing required dependencies (httpx, pyyaml)..."
+    if [ -f "$REPO_ROOT/requirements.txt" ]; then
+        $RUNNER -m pip install -r "$REPO_ROOT/requirements.txt" >/dev/null 2>&1 || true
+    else
+        $RUNNER -m pip install httpx pyyaml >/dev/null 2>&1 || true
+    fi
 fi
 
 export PYTHONPATH="$REPO_ROOT:$REPO_ROOT/flows:$REPO_ROOT/scrapers"
@@ -171,30 +196,57 @@ echo "======================================================================"
 echo "              PIPELINE EXECUTION COMPLETED SUCCESSFULLY"
 echo "======================================================================"
 echo
-echo "  LIVE WEB & SERVING INTERFACES:"
-echo "  --------------------------------------------------------------------"
-echo "  [*] Web Application (Job Se)  : http://localhost:8000/"
-echo "  [1] Interactive OpenAPI Docs  : http://localhost:8000/docs"
-echo "  [2] Live Ingested Jobs API    : http://localhost:8000/jobs"
-echo "  [3] \$150K+ Remote Jobs Filter : http://localhost:8000/jobs?min_salary=150000&remote=true"
-echo "  [4] API Health Check Status   : http://localhost:8000/health"
-echo "  [5] Prometheus Metrics        : http://localhost:8000/metrics"
-echo
-echo "  DATA PLATFORM CONSOLES & CLUSTERS:"
-echo "  --------------------------------------------------------------------"
-echo "  [6] Prefect Orchestrator UI   : http://localhost:4200"
-echo "  [7] MinIO Data Lake Console   : http://localhost:9101 (minioadmin / minioadmin)"
-echo "  [8] Elasticsearch Query API   : http://localhost:9200/jobs/_search?pretty"
-echo "  [9] Elasticsearch Job Count   : http://localhost:9200/jobs/_count"
-echo
+if [ "$HAS_DOCKER" = "1" ]; then
+    echo "  LIVE WEB & SERVING INTERFACES:"
+    echo "  --------------------------------------------------------------------"
+    echo "  [*] Web Application (Job Se)  : http://localhost:8000/"
+    echo "  [1] Interactive OpenAPI Docs  : http://localhost:8000/docs"
+    echo "  [2] Live Ingested Jobs API    : http://localhost:8000/jobs"
+    echo "  [3] \$150K+ Remote Jobs Filter : http://localhost:8000/jobs?min_salary=150000&remote=true"
+    echo "  [4] API Health Check Status   : http://localhost:8000/health"
+    echo "  [5] Prometheus Metrics        : http://localhost:8000/metrics"
+    echo
+    echo "  DATA PLATFORM CONSOLES & CLUSTERS:"
+    echo "  --------------------------------------------------------------------"
+    echo "  [6] Prefect Orchestrator UI   : http://localhost:4200"
+    echo "  [7] MinIO Data Lake Console   : http://localhost:9101 (minioadmin / minioadmin)"
+    echo "  [8] Elasticsearch Query API   : http://localhost:9200/jobs/_search?pretty"
+    echo "  [9] Elasticsearch Job Count   : http://localhost:9200/jobs/_count"
+    echo
+else
+    echo "  LIVE WEB & SERVING INTERFACES (DIRECT MODE):"
+    echo "  --------------------------------------------------------------------"
+    echo "  [*] Web Application (Job Se)  : http://localhost:8000/"
+    echo "  [1] Live Ingested Jobs API    : http://localhost:8000/jobs"
+    echo "  [2] \$150K+ Remote Jobs Filter : http://localhost:8000/jobs?min_salary=150000&remote=true"
+    echo "  [3] API Health Check Status   : http://localhost:8000/health"
+    echo "  [4] Market Statistics API     : http://localhost:8000/stats"
+    echo
+    echo "  DATA PLATFORM CLUSTERS:"
+    echo "  --------------------------------------------------------------------"
+    echo "  [i] Distributed clusters (Postgres, Dragonfly, MinIO, ES, Prefect)"
+    echo "      run in Docker Mode. To launch distributed stack, start Docker."
+    echo
+fi
 echo "  LOCAL DATASET EXPORT:"
 echo "  --------------------------------------------------------------------"
-echo "  [10] Enriched JSON File       : data/real_jobs_enriched.json"
+echo "  [5] Enriched JSON File        : data/real_jobs_enriched.json"
 echo
 echo "======================================================================"
 
 # Automatically launch default browser
 open_browser "http://localhost:8000/"
+
+if [ "$HAS_DOCKER" = "0" ]; then
+    echo "[INFO] Web Application server is actively running on http://localhost:8000/"
+    echo "[INFO] Press Ctrl+C when you wish to stop the server."
+    echo
+    if [ "$NO_PAUSE" = "1" ]; then
+        exit 0
+    fi
+    $RUNNER scripts/serve_local_ui.py 8000
+    exit 0
+fi
 
 if [ "$NO_PAUSE" = "0" ]; then
     echo
