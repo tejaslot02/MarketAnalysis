@@ -82,7 +82,7 @@ MarketAnalysis/
 
 ### 1. Clone & Enter Directory
 ```bash
-git clone https://github.com/Koustubh8/job_se.git MarketAnalysis
+git clone https://github.com/tejaslot02/MarketAnalysis.git
 cd MarketAnalysis
 ```
 

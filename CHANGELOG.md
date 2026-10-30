@@ -5,6 +5,20 @@
 
 ---
 
+## [Commit a8a6ea3] — 2026-10-30
+- **Commit**: `a8a6ea3`
+- **Author**: Tejas `<tejaslot02@gmail.com>`
+- **Message**: `chore(repo): update remote target to tejaslot02/MarketAnalysis and purge legacy job_se references`
+- **Affected Files**:
+  - [`README.md`](file:///e:/Work/MarketAnalysis/README.md)
+  - [`AGENTS.md`](file:///e:/Work/MarketAnalysis/AGENTS.md)
+  - [`CHANGELOG.md`](file:///e:/Work/MarketAnalysis/CHANGELOG.md)
+- **Detailed Changes**:
+  - Re-targeted remote `origin` to `https://github.com/tejaslot02/MarketAnalysis.git`.
+  - Purged all legacy repository links, clone URLs, and file references mentioning `job_se` and `Koustubh8` across all documentation, guides, and changelog records.
+
+---
+
 ## [Commit ac87e29] — 2026-10-30
 - **Commit**: `ac87e29`
 - **Author**: Tejas `<tejaslot02@gmail.com>`
@@ -58,11 +72,11 @@
 - **Commit**: `d2ac194`
 - **Message**: `ci(changelog): mandate commit-wise changelog updates via git hook, CI gate, and agent rules`
 - **Affected Files**:
-  - [`.githooks/pre-commit`](file:///e:/Work/job_se/.githooks/pre-commit)
-  - [`.github/workflows/ci.yml`](file:///e:/Work/job_se/.github/workflows/ci.yml)
-  - [`.agents/rules/changelog_mandate.md`](file:///e:/Work/job_se/.agents/rules/changelog_mandate.md)
-  - [`AGENTS.md`](file:///e:/Work/job_se/AGENTS.md)
-  - [`CHANGELOG.md`](file:///e:/Work/job_se/CHANGELOG.md)
+  - [`.githooks/pre-commit`](file:///e:/Work/MarketAnalysis/.githooks/pre-commit)
+  - [`.github/workflows/ci.yml`](file:///e:/Work/MarketAnalysis/.github/workflows/ci.yml)
+  - [`.agents/rules/changelog_mandate.md`](file:///e:/Work/MarketAnalysis/.agents/rules/changelog_mandate.md)
+  - [`AGENTS.md`](file:///e:/Work/MarketAnalysis/AGENTS.md)
+  - [`CHANGELOG.md`](file:///e:/Work/MarketAnalysis/CHANGELOG.md)
 - **Detailed Changes**:
   - **Git Pre-Commit Hook**: Created executable pre-commit hook in `.githooks/pre-commit` and activated repository `core.hooksPath` configuration. Blocks any commit if repository files are staged without `CHANGELOG.md`.
   - **CI Workflow Quality Gate**: Added `enforce-changelog` job to `.github/workflows/ci.yml` that validates `CHANGELOG.md` modification on pull requests.
@@ -86,10 +100,10 @@
 - **Author**: Tejas `<tejaslot02@gmail.com>`
 - **Message**: `Add frontend UI components and operational management router for Job SE application`
 - **Affected Files**: 
-  - [`api/app/routers/ops.py`](file:///e:/Work/job_se/api/app/routers/ops.py)
-  - [`api/app/static/index.html`](file:///e:/Work/job_se/api/app/static/index.html)
-  - [`api/app/static/css/styles.css`](file:///e:/Work/job_se/api/app/static/css/styles.css)
-  - [`api/app/static/js/app.js`](file:///e:/Work/job_se/api/app/static/js/app.js)
+  - [`api/app/routers/ops.py`](file:///e:/Work/MarketAnalysis/api/app/routers/ops.py)
+  - [`api/app/static/index.html`](file:///e:/Work/MarketAnalysis/api/app/static/index.html)
+  - [`api/app/static/css/styles.css`](file:///e:/Work/MarketAnalysis/api/app/static/css/styles.css)
+  - [`api/app/static/js/app.js`](file:///e:/Work/MarketAnalysis/api/app/static/js/app.js)
 - **Detailed Changes**:
   - **Live Log Terminal Console**:
     - Created an embedded industrial dark monospace terminal (`#0d1117`) in the Control Plane view for live Prefect worker log streaming.
@@ -116,12 +130,12 @@
 - **Author**: Tejas `<tejaslot02@gmail.com>`
 - **Message**: `Add standalone local web UI server script and enhance runner scripts for virtual environment setup`
 - **Affected Files**:
-  - [`scripts/serve_local_ui.py`](file:///e:/Work/job_se/scripts/serve_local_ui.py)
-  - [`run_all.bat`](file:///e:/Work/job_se/run_all.bat)
-  - [`run_all.sh`](file:///e:/Work/job_se/run_all.sh)
+  - [`scripts/serve_local_ui.py`](file:///e:/Work/MarketAnalysis/scripts/serve_local_ui.py)
+  - [`run_all.bat`](file:///e:/Work/MarketAnalysis/run_all.bat)
+  - [`run_all.sh`](file:///e:/Work/MarketAnalysis/run_all.sh)
   - `requirements.txt`, `requirements-dev.txt`
 - **Detailed Changes**:
-  - **Standalone UI Server**: Created [`scripts/serve_local_ui.py`](file:///e:/Work/job_se/scripts/serve_local_ui.py) allowing frontend and API testing locally without spinning up the entire Docker cluster.
+  - **Standalone UI Server**: Created [`scripts/serve_local_ui.py`](file:///e:/Work/MarketAnalysis/scripts/serve_local_ui.py) allowing frontend and API testing locally without spinning up the entire Docker cluster.
   - **Automated Environment Provisioning**:
     - Updated Windows batch launcher (`run_all.bat`) and Linux/macOS launcher (`run_all.sh`) to detect and auto-create `.venv`.
     - Automated pip dependency installation from `requirements.txt` and `requirements-dev.txt`.
@@ -134,12 +148,12 @@
 - **Author**: Tejas Lot `<tejaslot02@gmail.com>`
 - **Message**: `feat(ui): add developer-first Job Se web interface, ops control plane, cross-platform runner, and documentation`
 - **Affected Files**:
-  - [`api/app/static/index.html`](file:///e:/Work/job_se/api/app/static/index.html)
-  - [`api/app/static/css/styles.css`](file:///e:/Work/job_se/api/app/static/css/styles.css)
-  - [`api/app/static/js/app.js`](file:///e:/Work/job_se/api/app/static/js/app.js)
-  - [`api/app/routers/ops.py`](file:///e:/Work/job_se/api/app/routers/ops.py)
-  - [`api/app/main.py`](file:///e:/Work/job_se/api/app/main.py)
-  - [`docs/`](file:///e:/Work/job_se/docs/) (`01-architecture.md` through `09-glossary.md`)
+  - [`api/app/static/index.html`](file:///e:/Work/MarketAnalysis/api/app/static/index.html)
+  - [`api/app/static/css/styles.css`](file:///e:/Work/MarketAnalysis/api/app/static/css/styles.css)
+  - [`api/app/static/js/app.js`](file:///e:/Work/MarketAnalysis/api/app/static/js/app.js)
+  - [`api/app/routers/ops.py`](file:///e:/Work/MarketAnalysis/api/app/routers/ops.py)
+  - [`api/app/main.py`](file:///e:/Work/MarketAnalysis/api/app/main.py)
+  - [`docs/`](file:///e:/Work/MarketAnalysis/docs/) (`01-architecture.md` through `09-glossary.md`)
   - `Makefile`, `docker-compose.yml`, `run_all.bat`, `run_all.sh`
 - **Detailed Changes**:
   - **Developer-First Single-Page Application**:
@@ -157,18 +171,18 @@
 - **Message**: `fix(pipeline): resolve distributed stack dependencies, add master run_all.bat with links output`
 - **Affected Files**:
   - `api/Dockerfile`, `docker-compose.yml`, `prefect/requirements.txt`, `scrapers/requirements.txt`
-  - [`flows/scrape_flow.py`](file:///e:/Work/job_se/flows/scrape_flow.py), [`flows/scrape_portals.py`](file:///e:/Work/job_se/flows/scrape_portals.py)
-  - [`scripts/run_real_pipeline_local.py`](file:///e:/Work/job_se/scripts/run_real_pipeline_local.py)
-  - [`scripts/verify_all_pipelines.py`](file:///e:/Work/job_se/scripts/verify_all_pipelines.py)
+  - [`flows/scrape_flow.py`](file:///e:/Work/MarketAnalysis/flows/scrape_flow.py), [`flows/scrape_portals.py`](file:///e:/Work/MarketAnalysis/flows/scrape_portals.py)
+  - [`scripts/run_real_pipeline_local.py`](file:///e:/Work/MarketAnalysis/scripts/run_real_pipeline_local.py)
+  - [`scripts/verify_all_pipelines.py`](file:///e:/Work/MarketAnalysis/scripts/verify_all_pipelines.py)
   - `run_all.bat`
 - **Detailed Changes**:
   - **Distributed Dependency Resolution**:
     - Fixed asyncpg and psycopg2 driver conflicts in API and Prefect Dockerfiles.
     - Resolved container network dependencies between Dragonfly, Postgres, Elasticsearch, and Prefect.
   - **Pipeline Verification Tools**:
-    - Created [`scripts/verify_all_pipelines.py`](file:///e:/Work/job_se/scripts/verify_all_pipelines.py) validating the end-to-end flow: spider scraping $\rightarrow$ Redis stream $\rightarrow$ normalization $\rightarrow$ Postgres/ES/MinIO multi-store sync $\rightarrow$ DLQ routing.
-    - Created [`scripts/run_real_pipeline_local.py`](file:///e:/Work/job_se/scripts/run_real_pipeline_local.py) for headless test runs.
-  - **Master Orchestration Script**: Added Windows master launcher [`run_all.bat`](file:///e:/Work/job_se/run_all.bat) outputting verified endpoint links for all 8 services.
+    - Created [`scripts/verify_all_pipelines.py`](file:///e:/Work/MarketAnalysis/scripts/verify_all_pipelines.py) validating the end-to-end flow: spider scraping $\rightarrow$ Redis stream $\rightarrow$ normalization $\rightarrow$ Postgres/ES/MinIO multi-store sync $\rightarrow$ DLQ routing.
+    - Created [`scripts/run_real_pipeline_local.py`](file:///e:/Work/MarketAnalysis/scripts/run_real_pipeline_local.py) for headless test runs.
+  - **Master Orchestration Script**: Added Windows master launcher [`run_all.bat`](file:///e:/Work/MarketAnalysis/run_all.bat) outputting verified endpoint links for all 8 services.
 
 ---
 

@@ -1,7 +1,7 @@
 # Repository Agent & Developer Guidelines
 
 ## 1. Mandatory Commit-Wise Changelog
-- **Rule**: Every code modification and commit MUST be accompanied by an entry in [`CHANGELOG.md`](file:///e:/Work/job_se/CHANGELOG.md).
+- **Rule**: Every code modification and commit MUST be accompanied by an entry in [`CHANGELOG.md`](file:///e:/Work/MarketAnalysis/CHANGELOG.md).
 - **Structure**: Each commit entry must record:
   - Commit Hash / ID
   - Date (YYYY-MM-DD)
