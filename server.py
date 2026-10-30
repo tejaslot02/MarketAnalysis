@@ -6,9 +6,12 @@ import logging
 import mimetypes
 import os
 import sqlite3
+import sys
+import threading
 import time
+import webbrowser
 from http import HTTPStatus
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -20,7 +23,35 @@ from core.session import NSESessionManager
 from parsers.option_chain import OptionChainParser, OptionChainResult
 from storage.handler import StorageHandler
 
+# Line buffering on Windows console
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(line_buffering=True)
+
 logger = logging.getLogger("market_analysis.server")
+
+BASE_DIR = Path(__file__).resolve().parent
+UI_DIR = BASE_DIR / "ui"
+
+# Shared persistent crawler and storage singletons to preserve warmed session cookies
+_crawler: NSEOptionChainCrawler | None = None
+_storage: StorageHandler | None = None
+
+
+def get_crawler() -> NSEOptionChainCrawler:
+    """Returns singleton crawler instance with warm session."""
+    global _crawler
+    if _crawler is None:
+        _crawler = NSEOptionChainCrawler(cfg=config)
+    return _crawler
+
+
+def get_storage() -> StorageHandler:
+    """Returns singleton storage handler instance."""
+    global _storage
+    if _storage is None:
+        _storage = StorageHandler(cfg=config)
+    return _storage
+
 
 # In-memory LRU Cache with TTL (seconds) to prevent hammering NSE API
 CACHE_TTL = 15.0
@@ -43,16 +74,33 @@ def set_cached_result(symbol: str, is_equity: bool, raw: dict, result: OptionCha
     _cache[key] = (time.time(), raw, result)
 
 
-class OptionChainHandler(SimpleHTTPRequestHandler):
+class OptionChainHandler(BaseHTTPRequestHandler):
     """HTTP request handler providing static UI assets and analytical REST endpoints."""
 
-    def __init__(self, *args, **kwargs):
-        self.crawler = NSEOptionChainCrawler(cfg=config)
-        self.storage = StorageHandler(cfg=config)
-        super().__init__(*args, **kwargs)
+    # Protocol version HTTP/1.1 with Keep-Alive
+    protocol_version = "HTTP/1.1"
+
+    def do_OPTIONS(self):
+        """Handles CORS preflight requests."""
+        self.send_response(HTTPStatus.NO_CONTENT)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def do_GET(self):
-        """Routes GET requests to API handlers or static UI files."""
+        """Routes GET requests safely with complete exception containment."""
+        try:
+            self._route_get()
+        except Exception as exc:
+            logger.error("Unhandled error processing request %s: %s", self.path, exc, exc_info=True)
+            try:
+                self.send_json_response({"error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+            except Exception:
+                pass
+
+    def _route_get(self):
         parsed = urlparse(self.path)
         path = parsed.path
         params = parse_qs(parsed.query)
@@ -77,12 +125,19 @@ class OptionChainHandler(SimpleHTTPRequestHandler):
             self.handle_api_export(params)
             return
 
-        # 5. Static Frontend Routing
-        elif path == "/" or path == "":
-            self.serve_file(Path("ui/index.html"), "text/html")
+        # 5. Browser Favicon
+        elif path == "/favicon.ico":
+            self.send_response(HTTPStatus.NO_CONTENT)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+
+        # 6. Static Frontend Routing
+        elif path in ["/", "", "/index.html"]:
+            self.serve_file(UI_DIR / "index.html", "text/html; charset=utf-8")
             return
         elif path.startswith("/ui/"):
-            rel_path = Path(path.lstrip("/"))
+            rel_path = BASE_DIR / path.lstrip("/")
             if rel_path.exists() and rel_path.is_file():
                 content_type, _ = mimetypes.guess_type(str(rel_path))
                 self.serve_file(rel_path, content_type or "application/octet-stream")
@@ -102,12 +157,14 @@ class OptionChainHandler(SimpleHTTPRequestHandler):
             raw_payload, result = get_cached_result(symbol, is_equity)
             if result is None:
                 logger.info("Fetching fresh option chain for %s (equity=%s)...", symbol, is_equity)
-                raw_payload = self.crawler.fetch_option_chain(symbol=symbol, is_index=not is_equity)
+                crawler = get_crawler()
+                raw_payload = crawler.fetch_option_chain(symbol=symbol, is_index=not is_equity)
                 result = OptionChainParser.parse(raw_payload, symbol=symbol)
                 set_cached_result(symbol, is_equity, raw_payload, result)
                 # Persist snapshot to SQLite in background
                 try:
-                    self.storage.save_snapshot_metadata(result)
+                    storage = get_storage()
+                    storage.save_snapshot_metadata(result)
                 except Exception as db_err:
                     logger.warning("Could not append SQLite snapshot: %s", db_err)
 
@@ -140,7 +197,8 @@ class OptionChainHandler(SimpleHTTPRequestHandler):
     def handle_api_market_status(self):
         """Returns live NSE operational market status."""
         try:
-            status = self.crawler.get_market_status()
+            crawler = get_crawler()
+            status = crawler.get_market_status()
             self.send_json_response(status)
         except Exception as exc:
             logger.error("Error fetching market status: %s", exc)
@@ -178,7 +236,8 @@ class OptionChainHandler(SimpleHTTPRequestHandler):
         try:
             _, result = get_cached_result(symbol, False)
             if result is None:
-                raw = self.crawler.fetch_option_chain(symbol=symbol)
+                crawler = get_crawler()
+                raw = crawler.fetch_option_chain(symbol=symbol)
                 result = OptionChainParser.parse(raw, symbol=symbol)
 
             df = result.chain_df
@@ -207,6 +266,7 @@ class OptionChainHandler(SimpleHTTPRequestHandler):
             self.send_header("Content-Type", mime)
             self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
             self.send_header("Content-Length", str(len(data)))
+            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             self.wfile.write(data)
 
@@ -227,21 +287,33 @@ class OptionChainHandler(SimpleHTTPRequestHandler):
     def serve_file(self, file_path: Path, content_type: str):
         """Reads and streams a local static file to the client."""
         try:
+            if not file_path.exists() or not file_path.is_file():
+                self.send_error(HTTPStatus.NOT_FOUND, f"File {file_path.name} not found")
+                return
+
             with open(file_path, "rb") as f:
                 content = f.read()
+
             self.send_response(HTTPStatus.OK)
             self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(content)))
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
             self.wfile.write(content)
         except Exception as e:
             logger.error("Error serving static file %s: %s", file_path, e)
             self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, f"Failed reading file: {e}")
 
+    def log_message(self, format: str, *args):
+        """Prefixes HTTP server requests cleanly to logger."""
+        logger.debug("%s - - [%s] %s", self.address_string(), self.log_date_time_string(), format % args)
 
-def run_server(port: int = 8080, host: str = "127.0.0.1"):
+
+def run_server(port: int = 8080, host: str = "127.0.0.1", open_browser: bool = False):
     """Starts the multi-threaded web server."""
     setup_logging(level=logging.INFO)
+    ThreadingHTTPServer.allow_reuse_address = True
     server_address = (host, port)
     httpd = ThreadingHTTPServer(server_address, OptionChainHandler)
 
@@ -253,6 +325,16 @@ def run_server(port: int = 8080, host: str = "127.0.0.1"):
     print(f" -> Live Status  : http://{host}:{port}/api/market-status")
     print("=" * 70)
     print(" Press Ctrl+C to terminate the web server.\n")
+
+    # If requested, launch default web browser after server socket is confirmed listening
+    if open_browser:
+        def _launch():
+            time.sleep(0.6)
+            url = f"http://{host}:{port}/"
+            logger.info("Opening default browser to %s ...", url)
+            webbrowser.open(url)
+
+        threading.Thread(target=_launch, daemon=True).start()
 
     try:
         httpd.serve_forever()
@@ -267,6 +349,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the Option Chain Web UI Server")
     parser.add_argument("--port", type=int, default=8080, help="Port to bind the server")
     parser.add_argument("--host", type=str, default="127.0.0.1", help="Host IP address")
+    parser.add_argument("--open", action="store_true", help="Automatically launch web browser on startup")
     args = parser.parse_args()
 
-    run_server(port=args.port, host=args.host)
+    run_server(port=args.port, host=args.host, open_browser=args.open)

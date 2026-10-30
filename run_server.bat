@@ -8,7 +8,7 @@ echo   NSE India Option Chain and Quantitative Analytics Terminal
 echo ==============================================================================
 echo.
 
-:: Check Python availability
+rem Check Python availability
 where python >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo [ERROR] Python is not installed or not in your system PATH.
@@ -17,28 +17,24 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-:: Activate virtual environment if present
+rem Activate virtual environment if present
 if exist ".venv\Scripts\activate.bat" (
-    echo [*] Activating virtual environment .venv
+    echo [*] Activating virtual environment .venv ...
     call .venv\Scripts\activate.bat
 ) else if exist "venv\Scripts\activate.bat" (
-    echo [*] Activating virtual environment venv
+    echo [*] Activating virtual environment venv ...
     call venv\Scripts\activate.bat
 )
 
-:: Port configuration (default: 8080 or pass as first argument)
+rem Port configuration (default: 8080 or pass as first argument)
 set "PORT=8080"
 if not "%~1"=="" set "PORT=%~1"
 
 echo [*] Starting Web UI Server on http://127.0.0.1:%PORT%/
-echo [*] Opening default web browser...
+echo [*] Browser will open automatically once the server is ready...
 echo.
 
-:: Open default browser
-start http://127.0.0.1:%PORT%/
-
-:: Start server
-python server.py --port %PORT%
+python server.py --port %PORT% --open
 
 if %ERRORLEVEL% neq 0 (
     echo.

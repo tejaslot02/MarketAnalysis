@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param (
-    [int]$Port = 8080
+    [int]$Port = 8080,
+    [switch]$NoBrowser
 )
 
 Write-Host "==============================================================================" -ForegroundColor Cyan
@@ -24,12 +25,12 @@ if (Test-Path ".venv\Scripts\Activate.ps1") {
     & venv\Scripts\Activate.ps1
 }
 
-Write-Host "[*] Starting Web UI Server on http://127.0.0.1:$Port/" -ForegroundColor Green
-Write-Host "[*] Opening default web browser..." -ForegroundColor Green
+Write-Host "[*] Starting Web UI Server on http://127.0.0.1:$Port/..." -ForegroundColor Green
+Write-Host "[*] Browser will open automatically once the server is ready..." -ForegroundColor Green
 Write-Host ""
 
-# Launch default browser
-Start-Process "http://127.0.0.1:$Port/"
-
-# Start server
-python server.py --port $Port
+if ($NoBrowser) {
+    python server.py --port $Port
+} else {
+    python server.py --port $Port --open
+}

@@ -3,6 +3,29 @@
 > **MANDATE**: Every commit to this repository MUST include an entry in this changelog documenting the commit hash, date, author, affected modules, and a granular breakdown of changes.
 > Enforced locally via Git Pre-Commit Hook (`.githooks/pre-commit`) and in CI quality gates.
 
+## [Commit 3909d36] — 2026-10-30
+- **Commit**: `3909d36`
+- **Author**: Tejas `<tejaslot02@gmail.com>`
+- **Message**: `fix(server): eliminate empty responses, optimize session reuse, and fix launcher race condition`
+- **Affected Files**:
+  - [`server.py`](file:///e:/Work/MarketAnalysis/server.py)
+  - [`run_server.bat`](file:///e:/Work/MarketAnalysis/run_server.bat)
+  - [`run_server.ps1`](file:///e:/Work/MarketAnalysis/run_server.ps1)
+  - [`CHANGELOG.md`](file:///e:/Work/MarketAnalysis/CHANGELOG.md)
+- **Detailed Changes**:
+  - **Eliminated `ERR_EMPTY_RESPONSE` in `server.py`**:
+    - Replaced `SimpleHTTPRequestHandler` subclass with a clean `BaseHTTPRequestHandler` implementation with safe URL routing.
+    - Wrapped `do_GET` dispatch in global exception containment, ensuring an HTTP status header is always returned rather than silently closing connection sockets.
+    - Implemented `do_OPTIONS` to support CORS preflight checks cleanly.
+    - Added `/favicon.ico` route returning HTTP 204 No Content to prevent console 404 noise.
+  - **Performance Optimization & Session Persistence**:
+    - Converted `NSEOptionChainCrawler` and `StorageHandler` to shared singletons in `server.py`, avoiding per-request re-initialization and preserving warmed Akamai/Cloudflare session cookies across requests.
+    - Reduced API response latency for cached/warmed requests down to ~0.65s.
+  - **Fixed Launcher Scripts & Port Race Conditions**:
+    - Resolved batch syntax errors (`&` command separation and `::` label issues) in [`run_server.bat`](file:///e:/Work/MarketAnalysis/run_server.bat).
+    - Added `--open` argument to `server.py` so the default browser is opened asynchronously *only after* the HTTP socket has successfully bound and is listening, eliminating the browser opening race condition.
+    - Terminated lingering duplicate background python processes that previously held port 8080 in `FIN_WAIT_1`.
+
 ---
 
 ## [Commit c12f37b] — 2026-10-30
