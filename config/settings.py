@@ -1,130 +1,126 @@
-"""Centralized application and system configuration using Pydantic BaseSettings."""
-from __future__ import annotations
+"""Configuration settings and constants for the NSE Option Chain pipeline."""
 
+import logging
 import os
-from functools import lru_cache
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
-
-import yaml
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Dict, List, Optional
 
 
-class Settings(BaseSettings):
-    """Configuration settings for Remote 150K+ DS/AI/ML Job Search Platform."""
+@dataclass
+class NSEConfig:
+    """Central configuration parameters for endpoints, headers, retry, and storage."""
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        extra="ignore",
+    # Base URLs
+    base_url: str = "https://www.nseindia.com"
+    option_chain_page_url: str = "https://www.nseindia.com/option-chain"
+
+    # API Endpoints
+    # Primary: Modern NextApi endpoint that aggregates derivatives and option chains
+    next_api_url: str = "https://www.nseindia.com/api/NextApi/apiClient/GetQuoteApi"
+    # Legacy / fallback endpoints
+    indices_api_url: str = "https://www.nseindia.com/api/option-chain-indices"
+    equities_api_url: str = "https://www.nseindia.com/api/option-chain-equities"
+    market_status_url: str = "https://www.nseindia.com/api/marketStatus"
+    all_indices_url: str = "https://www.nseindia.com/api/allIndices"
+
+    # Standard Major Indices
+    standard_indices: List[str] = field(
+        default_factory=lambda: [
+            "NIFTY",
+            "BANKNIFTY",
+            "FINNIFTY",
+            "MIDCPNIFTY",
+            "NIFTYNXT50",
+        ]
     )
 
-    # Application
-    environment: str = Field(default="development", alias="ENVIRONMENT")
-    app_name: str = Field(
-        default="Remote 150K+ DS/AI/ML Job Search Platform", alias="APP_NAME"
-    )
-    app_version: str = Field(default="1.0.0", alias="APP_VERSION")
-    api_host: str = Field(default="0.0.0.0", alias="API_HOST")
-    api_port: int = Field(default=8000, alias="API_PORT")
-
-    # Relational & Vector DB (PostgreSQL / pgvector)
-    database_url: str = Field(
-        default="postgresql+asyncpg://postgres:postgres@localhost:5432/jobs",
-        alias="DATABASE_URL",
-    )
-    sync_database_url: str = Field(
-        default="postgresql+psycopg2://postgres:postgres@localhost:5432/jobs",
-        alias="SYNC_DATABASE_URL",
-    )
-    db_pool_size: int = Field(default=10, alias="DB_POOL_SIZE")
-    db_max_overflow: int = Field(default=20, alias="DB_MAX_OVERFLOW")
-    db_pool_pre_ping: bool = Field(default=True, alias="DB_POOL_PRE_PING")
-
-    # In-Memory Store & Streams (Dragonfly)
-    dragonfly_url: str = Field(
-        default="redis://localhost:6379/0", alias="DRAGONFLY_URL"
-    )
-    stream_name: str = Field(default="raw-jobs", alias="STREAM_NAME")
-    stream_group: str = Field(default="jobs-ingest", alias="STREAM_GROUP")
-    stream_consumer: str = Field(default="consumer-1", alias="STREAM_CONSUMER")
-    stream_maxlen: int = Field(default=100000, alias="STREAM_MAXLEN")
-    dlq_stream_name: str = Field(default="raw-jobs-dlq", alias="DLQ_STREAM_NAME")
-
-    # Search Engine (Elasticsearch)
-    elasticsearch_url: str = Field(
-        default="http://localhost:9200", alias="ELASTICSEARCH_URL"
-    )
-    es_index: str = Field(default="jobs", alias="ES_INDEX")
-    es_username: str | None = Field(default=None, alias="ES_USERNAME")
-    es_password: str | None = Field(default=None, alias="ES_PASSWORD")
-
-    # Object Storage (MinIO)
-    minio_endpoint: str = Field(default="localhost:9000", alias="MINIO_ENDPOINT")
-    minio_access_key: str = Field(default="minioadmin", alias="MINIO_ACCESS_KEY")
-    minio_secret_key: str = Field(default="minioadmin", alias="MINIO_SECRET_KEY")
-    minio_bucket: str = Field(default="raw-jobs", alias="MINIO_BUCKET")
-    minio_secure: bool = Field(default=False, alias="MINIO_SECURE")
-
-    # Master Data & Dictionaries
-    dictionary_dir: str = Field(
-        default=os.getenv("DICTIONARY_DIR", "data/dictionaries"),
-        alias="DICTIONARY_DIR",
+    # Realistic Browser Headers (mimics modern desktop Chrome on Windows)
+    default_headers: Dict[str, str] = field(
+        default_factory=lambda: {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9,hi;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+        }
     )
 
-    # Security & Authentication
-    jwt_secret: str = Field(
-        default="change-in-production-job-search-secret-key-32chars",
-        alias="JWT_SECRET",
-    )
-    jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
-    jwt_expiry_minutes: int = Field(default=60, alias="JWT_EXPIRY_MINUTES")
-
-    # GenAI & Models
-    openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
-    anthropic_api_key: str = Field(default="", alias="ANTHROPIC_API_KEY")
-    default_llm_provider: str = Field(default="openai", alias="DEFAULT_LLM_PROVIDER")
-    default_embedding_provider: str = Field(
-        default="openai", alias="DEFAULT_EMBEDDING_PROVIDER"
-    )
-    openai_embedding_model: str = Field(
-        default="text-embedding-3-small", alias="OPENAI_EMBEDDING_MODEL"
-    )
-    embedding_dimension: int = Field(default=1536, alias="EMBEDDING_DIMENSION")
-    local_embedding_model: str = Field(
-        default="all-MiniLM-L6-v2", alias="LOCAL_EMBEDDING_MODEL"
+    # API-specific headers applied for JSON data fetches
+    api_headers: Dict[str, str] = field(
+        default_factory=lambda: {
+            "Accept": "application/json, text/plain, */*",
+            "Referer": "https://www.nseindia.com/option-chain",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "X-Requested-With": "XMLHttpRequest",
+        }
     )
 
-    # Feature Flags
-    use_llm_skill_extraction: bool = Field(
-        default=False, alias="USE_LLM_SKILL_EXTRACTION"
+    # Resilience & Rate Limiting Settings
+    request_timeout: float = float(os.getenv("NSE_REQUEST_TIMEOUT", "20.0"))
+    max_retries: int = int(os.getenv("NSE_MAX_RETRIES", "3"))
+    initial_backoff: float = float(os.getenv("NSE_INITIAL_BACKOFF", "1.5"))
+    backoff_factor: float = float(os.getenv("NSE_BACKOFF_FACTOR", "2.0"))
+    polite_delay_min: float = float(os.getenv("NSE_POLITE_DELAY_MIN", "0.8"))
+    polite_delay_max: float = float(os.getenv("NSE_POLITE_DELAY_MAX", "1.5"))
+    session_ttl_seconds: int = int(os.getenv("NSE_SESSION_TTL_SECONDS", "300"))
+
+    # Storage Paths
+    base_data_dir: Path = Path(os.getenv("NSE_DATA_DIR", "data"))
+    default_db_path: Path = Path(os.getenv("NSE_DB_PATH", "data/market_analysis.db"))
+
+    def __post_init__(self):
+        """Ensure storage directory exists."""
+        self.base_data_dir.mkdir(parents=True, exist_ok=True)
+        self.default_db_path.parent.mkdir(parents=True, exist_ok=True)
+
+
+# Global singleton instance
+config = NSEConfig()
+
+
+def setup_logging(level: int = logging.INFO, log_file: Optional[Path] = None) -> logging.Logger:
+    """Configures structured, clean logging for pipeline operations.
+
+    Args:
+        level: Standard logging level (e.g. logging.INFO or logging.DEBUG).
+        log_file: Optional file path to mirror logs to disk.
+
+    Returns:
+        Configured root pipeline logger.
+    """
+    logger = logging.getLogger("market_analysis")
+    logger.setLevel(level)
+    logger.handlers.clear()
+
+    formatter = logging.Formatter(
+        fmt="%(asctime)s [%(levelname)s] %(name)s (%(filename)s:%(lineno)d) - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
-    use_vector_search: bool = Field(default=False, alias="USE_VECTOR_SEARCH")
-    enable_guardrails: bool = Field(default=False, alias="ENABLE_GUARDRAILS")
 
-    def __init__(self, **values: Any):
-        super().__init__(**values)
-        self._load_feature_flags_file()
+    # Console Handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(level)
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
 
-    def _load_feature_flags_file(self) -> None:
-        """Load feature flags overrides from feature_flags.yaml if present."""
-        flags_file = Path(__file__).parent / "feature_flags.yaml"
-        if flags_file.exists():
-            try:
-                with open(flags_file, encoding="utf-8") as f:
-                    data = yaml.safe_load(f) or {}
-                if "use_llm_skill_extraction" in data and "USE_LLM_SKILL_EXTRACTION" not in os.environ:
-                    self.use_llm_skill_extraction = bool(data["use_llm_skill_extraction"])
-                if "use_vector_search" in data and "USE_VECTOR_SEARCH" not in os.environ:
-                    self.use_vector_search = bool(data["use_vector_search"])
-                if "enable_guardrails" in data and "ENABLE_GUARDRAILS" not in os.environ:
-                    self.enable_guardrails = bool(data["enable_guardrails"])
-            except Exception:
-                pass
+    # Optional File Handler
+    if log_file:
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(log_file, encoding="utf-8")
+        file_handler.setLevel(level)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
 
-
-@lru_cache(maxsize=1)
-def get_settings() -> Settings:
-    """Return cached singleton application settings."""
-    return Settings()
+    return logger

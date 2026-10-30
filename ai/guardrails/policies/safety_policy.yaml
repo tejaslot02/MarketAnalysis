@@ -1,6 +1,0 @@
-# Output Safety and Toxicity Filtering Policy
-blocked_terms:
-  - "(?i)\\b(malware|exploit|backdoor|phishing)\\b"
-  - "(?i)\\b(hate speech|racial slur|obscenity)\\b"
-hallucination_threshold: 0.30
-max_tokens_output: 4096

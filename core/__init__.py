@@ -1,3 +1,21 @@
-"""Core domain and application layer for Remote 150K+ DS/AI/ML Job Search Platform.
-Contains AI-agnostic business rules, entities, domain services, and port protocols.
-"""
+"""Core crawler and session management package."""
+
+from .crawler import NSEOptionChainCrawler
+from .session import (
+    NSEConnectionError,
+    NSEDataFormatError,
+    NSEException,
+    NSERateLimitError,
+    NSESessionExpiredError,
+    NSESessionManager,
+)
+
+__all__ = [
+    "NSEOptionChainCrawler",
+    "NSESessionManager",
+    "NSEException",
+    "NSEConnectionError",
+    "NSESessionExpiredError",
+    "NSERateLimitError",
+    "NSEDataFormatError",
+]

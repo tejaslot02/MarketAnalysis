@@ -1,4 +1,9 @@
-"""Configuration package."""
-from config.settings import Settings, get_settings
+"""Configuration package for NSE Option Chain pipeline."""
 
-__all__ = ["Settings", "get_settings"]
+from .settings import (
+    NSEConfig,
+    config,
+    setup_logging,
+)
+
+__all__ = ["NSEConfig", "config", "setup_logging"]

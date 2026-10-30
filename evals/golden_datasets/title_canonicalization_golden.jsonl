@@ -1,5 +1,0 @@
-{"id": "gold_title_1", "raw_title": "Senior Machine Learning Engineer", "expected_canonical": "Machine Learning Engineer", "expected_track": "individual_contributor"}
-{"id": "gold_title_2", "raw_title": "Staff Data Scientist - Product Analytics", "expected_canonical": "Data Scientist", "expected_track": "individual_contributor"}
-{"id": "gold_title_3", "raw_title": "Director of Data Science", "expected_canonical": "Director of Data Science", "expected_track": "leadership"}
-{"id": "gold_title_4", "raw_title": "Senior MLOps Engineer", "expected_canonical": "MLOps Engineer", "expected_track": "mlops_platform"}
-{"id": "gold_title_5", "raw_title": "Research Scientist, Foundation Models", "expected_canonical": "ML Research Scientist", "expected_track": "research"}

@@ -1,68 +1,22 @@
-.PHONY: run pipeline up down logs ps init-prefect migrate seed-master prefect-flows seed-db scrape scrape-remoteok scrape-all venv test reset clean
+.PHONY: install run scrape-nifty scrape-banknifty market-status test clean
+
+install:
+	pip install -r requirements.txt
 
 run:
-	@bash ./run_all.sh
+	python main.py -s NIFTY
 
-pipeline:
-	@bash ./run_all.sh
+scrape-nifty:
+	python main.py -s NIFTY
 
-up:
-	docker compose up -d
+scrape-banknifty:
+	python main.py -s BANKNIFTY
 
-down:
-	docker compose down
+market-status:
+	python main.py --market-status
 
-logs:
-	docker compose logs -f $(SVC)
-
-ps:
-	docker compose ps
-
-init-prefect:
-	docker compose run --rm prefect-init
-
-# Apply master-data schema (idempotent) for existing volumes
-migrate:
-	docker compose exec -T postgres psql -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-jobs} < db/init/02_master_data.sql
-	docker compose exec -T postgres psql -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-jobs} < db/init/03_analytics.sql
-	docker compose exec -T postgres psql -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-jobs} < db/init/04_skill_mining.sql
-
-# Seed master data (portals/skills/titles/companies) from the YAML dictionaries
-seed-master:
-	docker compose exec -T prefect-scheduler python /opt/prefect/flows/seed_master_data.py
-
-# Run the consume-raw-jobs flow ad hoc inside the scheduler
-prefect-flows:
-	docker compose exec -T prefect-scheduler python /opt/prefect/flows/scrape_flow.py
-
-# Seed sample job rows into Postgres
-seed-db:
-	docker compose exec -T postgres psql -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-jobs} < db/seed/sample_jobs.sql
-
-# Run a single spider (Extract) -- e.g. make scrape SPIDER=remoteok
-scrape:
-	docker compose run --rm scraper scrapy crawl $(SPIDER) $(ARGS)
-
-scrape-remoteok:
-	docker compose run --rm scraper scrapy crawl remoteok
-
-# Run ALL configured portal spiders (fan-out over companies.yaml)
-scrape-all:
-	docker compose exec -T prefect-scheduler python /opt/prefect/flows/scrape_portals.py
-
-# Create a local virtualenv + install dev/test deps (see docs/TEST_CASES.md)
-venv:
-	python3 -m venv .venv
-	.venv/bin/pip install --upgrade pip
-	.venv/bin/pip install -r requirements-dev.txt
-
-# Run the ETL unit test suite (see docs/TEST_CASES.md)
 test:
-	.venv/bin/python -m pytest tests/ -v
-
-reset:
-	docker compose down -v
-	docker compose build --no-cache
+	pytest tests/ -v
 
 clean:
-	docker compose down -v --remove-orphans
+	rm -rf __pycache__ */__pycache__ tests/__pycache__ .pytest_cache

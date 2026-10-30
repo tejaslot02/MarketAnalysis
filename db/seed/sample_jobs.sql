@@ -1,7 +1,0 @@
--- Sample rows for local development (run via `make seed-db`).
-INSERT INTO jobs (id, source, external_id, title, company, location, is_remote, remote_type, salary_min, salary_max, salary_currency, salary_raw, base_vs_tc, posted_at, description, url, seniority, title_canonical, salary_ok)
-VALUES
-('0000000000000000000000000000000000000000000000000000000000000001', 'greenhouse', '1001', 'Senior Machine Learning Engineer', 'Acme AI', 'Remote (US)', TRUE, 'fully_remote', 180000, 220000, 'USD', '$180,000 - $220,000', 'base', '2024-06-01T00:00:00Z', 'Design and productionize ML models. PyTorch, Kubernetes, LLM fine-tuning, RAG.', 'https://boards.greenhouse.io/acme/jobs/1001', 'senior', 'Machine Learning Engineer', TRUE),
-('0000000000000000000000000000000000000000000000000000000000000002', 'lever', '2002', 'Staff Data Scientist', 'Beta Analytics', 'Remote (US)', TRUE, 'fully_remote', 190000, 240000, 'USD', '$190,000 - $240,000 + equity', 'base', '2024-06-03T00:00:00Z', 'A/B testing, causal inference, forecasting. Spark, SQL, dbt.', 'https://jobs.lever.co/beta/2002', 'staff', 'Data Scientist', TRUE),
-('0000000000000000000000000000000000000000000000000000000000000003', 'remoteok', '3003', 'Principal LLM Engineer', 'Gamma Labs', 'Remote', TRUE, 'fully_remote', 220000, 280000, 'USD', '$220k - $280k', 'total_comp', '2024-06-05T00:00:00Z', 'Build LLM applications with LangChain, vLLM, vector databases.', 'https://remoteok.com/remote-jobs/3003', 'principal', 'LLM Engineer', TRUE)
-ON CONFLICT (id) DO NOTHING;

@@ -10,29 +10,24 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
-# Env / secrets
+# Environment
 .env
 *.env.local
 
-# Docker / data
+# Logs
 *.log
-flows/__pycache__/
 
-# Data (raw scrapes, parquet, etc.)
-data/raw/
-data/processed/
-data/lake/
+# Scraped Data & Artifacts
+data/raw/*
+data/csv/*
+data/parquet/*
+data/*.db
 data/*.json
+!data/.gitkeep
 
-# Jupyter
-.ipynb_checkpoints/
-notebooks/.ipynb_checkpoints/
-
-# OS
+# OS & Editors
 .DS_Store
 Thumbs.db
-
-# IDE
 .idea/
 .vscode/
 *.swp

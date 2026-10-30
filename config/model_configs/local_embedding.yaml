@@ -1,6 +1,0 @@
-model_name: "sentence-transformers/all-MiniLM-L6-v2"
-provider: "sentence_transformer"
-dimension: 384
-normalize_embeddings: true
-batch_size: 64
-device: "cpu"

@@ -1,4 +1,0 @@
-{"id": "gold_retrieval_1", "query": "Remote LLM inference and serving engineer PyTorch $200k", "relevant_job_ids": ["job_llm_serve_1", "job_infra_llm_2"], "min_relevant": 1}
-{"id": "gold_retrieval_2", "query": "Senior Computer Vision PyTorch CUDA", "relevant_job_ids": ["job_cv_lead_3"], "min_relevant": 1}
-{"id": "gold_retrieval_3", "query": "Principal Data Scientist experimentation causal inference", "relevant_job_ids": ["job_ds_principal_4"], "min_relevant": 1}
-{"id": "gold_retrieval_4", "query": "MLOps Kafka Spark real-time feature store", "relevant_job_ids": ["job_mlops_stream_5"], "min_relevant": 1}

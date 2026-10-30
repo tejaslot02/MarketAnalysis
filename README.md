@@ -1,107 +1,247 @@
-# Remote 150K+ DS/AI/ML Job Search Platform
+# NSE India Option Chain Analysis Pipeline
 
-Collect, normalize, and analyze **remote Data Science / AI / ML job postings
-paying $150K+ USD** (US market) using a Docker-based big-data toolchain.
+A clean, modular, and production-ready Python pipeline designed to crawl real-time Option Chain data from [NSE India](https://www.nseindia.com/option-chain), defeat strict bot detection (Akamai / Cloudflare), and structure the data into high-performance Pandas DataFrames and storage backends (CSV, Apache Parquet, SQLite, JSON) for downstream quantitative finance and algorithmic trading.
 
-> **Disclaimer** — Personal/educational project for your own job search.
-> Respect robots.txt, Terms of Service, and rate limits. Do not scrape
-> LinkedIn or paywalled content. See `docs/COMPLIANCE.md`.
+---
 
-## Quick Start
+## Key Features
 
+1. **Robust Anti-Bot Session Manager**:
+   - Automated handshake visiting the NSE base portal (`https://www.nseindia.com`) and Option Chain UI (`https://www.nseindia.com/option-chain`) to harvest perimeter security cookies (`_abck`, `ak_bmsc`, `bm_sz`, `bm_sv`, `nsit`).
+   - Uses `curl_cffi` for realistic Chrome TLS JA3/JA4 fingerprint impersonation with fallback to standard `requests`.
+   - Automatic session refresh and re-warming upon receiving `401 Unauthorized` or `403 Forbidden` challenge responses.
+
+2. **Resilience & Rate Limiting**:
+   - Exponential backoff with random jitter to gracefully handle transient network hiccups and throttle spikes.
+   - Polite configurable delays (`0.8s` - `1.5s`) to prevent IP bans.
+   - Graceful error recovery against malformed JSON or HTML challenge pages.
+
+3. **Intelligent Multi-Endpoint Routing**:
+   - Primary: High-speed NSE `NextApi` derivative feed (`functionName=getSymbolDerivativesData`) providing all active expiries and strike ranges in a single call.
+   - Fallback: Classic option-chain endpoints (`/api/option-chain-indices` and `/api/option-chain-equities`).
+
+4. **Quantitative Option Chain Parsing**:
+   - Extracts Call (CE) and Put (PE) options with strike prices, Open Interest (OI), Change in OI, % Change in OI, Implied Volatility (IV), Last Traded Price (LTP), Volume, and Turnover.
+   - Generates a unified side-by-side **Option Chain Matrix** (Calls on left, Strike in center, Puts on right).
+   - Automatically computes quantitative derivatives metrics:
+     - **ATM Strike** (At-The-Money closest strike)
+     - **Max Pain Strike** (Strike where option sellers minimize total payout liability)
+     - **Put-Call Ratio (PCR)** by Open Interest and Volume
+     - Total Market Open Interest
+
+5. **Multi-Format Storage Handlers**:
+   - Local timestamped **CSV** exports
+   - Compressed columnar **Apache Parquet** (snappy)
+   - Structured **SQLite** database (`option_calls`, `option_puts`, `option_chain`, `market_snapshots`)
+   - Raw JSON payload archival for historical replays
+
+---
+
+## Directory Layout
+
+```plaintext
+MarketAnalysis/
+├── config/
+│   ├── __init__.py
+│   └── settings.py          # Central configurations, URLs, headers, retry parameters, and logging
+├── core/
+│   ├── __init__.py
+│   ├── session.py           # NSESessionManager (cookie harvesting, TLS impersonation, auto-recovery)
+│   └── crawler.py           # NSEOptionChainCrawler (rate limiting, exponential backoff, NextApi/Classic routing)
+├── parsers/
+│   ├── __init__.py
+│   └── option_chain.py      # OptionChainParser (CE/PE separation, matrix generation, PCR, Max Pain, ATM)
+├── storage/
+│   ├── __init__.py
+│   └── handler.py           # StorageHandler (CSV, Parquet, SQLite, and raw JSON export)
+├── tests/
+│   ├── __init__.py
+│   ├── test_session.py      # Unit tests for session management and rate limits
+│   ├── test_crawler.py      # Unit tests for crawler retry and symbol sanitization
+│   ├── test_parser.py       # Unit tests for NextApi & Classic formats and Max Pain
+│   └── test_storage.py      # Unit tests for CSV, Parquet, and SQLite persistence
+├── data/
+│   ├── csv/                 # Output directory for CSV exports
+│   ├── parquet/             # Output directory for Parquet exports
+│   ├── raw/                 # Output directory for raw JSON archives
+│   ├── market_analysis.db   # SQLite database
+│   └── .gitkeep
+├── main.py                  # Production CLI entrypoint
+├── requirements.txt         # Minimal production dependencies
+├── pyproject.toml           # Project packaging and tool configuration
+├── Makefile                 # Developer automation targets
+├── .env.example             # Configuration environment template
+├── .gitignore               # Clean repository gitignore
+├── README.md                # Project documentation
+└── CHANGELOG.md             # Commit-wise audit log
+```
+
+---
+
+## Installation & Setup
+
+### 1. Clone & Enter Directory
 ```bash
-cp .env.example .env        # adjust secrets
-make up                     # or: docker compose up -d
-
-# Wait for services, then verify:
-docker compose ps
-curl http://localhost:8000/health
-curl "http://localhost:8000/jobs?min_salary=150000&remote=true"
-
-make seed-db                # load sample rows
-make init-prefect           # (optional) re-run Prefect DB migrations
+git clone https://github.com/Koustubh8/job_se.git MarketAnalysis
+cd MarketAnalysis
 ```
 
-## Service URLs
-
-| Service | URL |
-|---------|-----|
-| FastAPI | http://localhost:8000/docs |
-| Metabase | http://localhost:3001 |
-| Jupyter | http://localhost:8888 |
-| Prefect UI | http://localhost:4200 |
-| MinIO console | http://localhost:9001 |
-| Spark master UI | http://localhost:8080 |
-| Grafana | http://localhost:3000 (admin/admin) |
-| Prometheus | http://localhost:9090 |
-| Elasticsearch | http://localhost:9200 |
-
-## Directory Map
-
-```
-.
-├── data/dictionaries/          # YAML dictionaries (portals, titles, skills, keywords)
-│   ├── job_portals.yaml
-│   ├── job_titles.yaml
-│   ├── roles_responsibilities.yaml
-│   ├── skills_technologies.yaml
-│   └── search_keywords.yaml
-├── db/
-│   ├── init/                   # auto-loaded on first Postgres start
-│   └── seed/                   # sample rows (make seed-db)
-├── api/                        # FastAPI service
-├── scrapers/                   # Scrapy adapters + Dockerfile
-├── flows/                      # Prefect flows (consume-raw-jobs, etc.)
-├── notebooks/                  # Jupyter workdir
-├── monitoring/prometheus.yml
-├── docs/
-│   ├── PLAN.md                 # end-to-end plan, roadmap, schema
-│   ├── ARCHITECTURE.md         # C4 + data-flow diagrams
-│   └── COMPLIANCE.md           # scraping ethics & legal notes
-├── docker-compose.yml
-├── Makefile
-├── .env.example
-└── README.md
-```
-
-## Stack
-
-Postgres+pgvector · Elasticsearch · Dragonfly (Redis Streams) · MinIO · Spark ·
-Prefect · Jupyter · Metabase · FastAPI · Prometheus · Grafana.
-
-See `docs/ARCHITECTURE.md` for diagrams and rationale, and `docs/PLAN.md` for
-phases, metrics, and the canonical job schema.
-
-## Make targets
-
-`up` · `down` · `logs` · `ps` · `init-prefect` · `migrate` · `seed-master` · `prefect-flows` · `seed-db` · `scrape` · `scrape-all` · `venv` · `test` · `reset` · `clean`
-
-## Scheduling & Master Data
-
-- **Daily refresh** is handled by the `prefect-scheduler` service (`flows/scheduler.py`, Prefect 3 `prefect.serve`):
-  - `seed-master-data` -> daily 06:30 America/New_York (`SEED_CRON`)
-  - `scrape-portals` -> daily 07:00 America/New_York (`SCRAPE_CRON`)
-  - `consume-raw-jobs` -> every 30 min (`CONSUME_INTERVAL_SECONDS`)
-- **Portals**: 10 live adapters (greenhouse, lever, ashby, workable, remoteok, remotive, weworkremotely, hn, aijobs, builtin). ATS spiders fan out across the company list in `data/dictionaries/companies.yaml`.
-- **Skill database**: seeded from `data/dictionaries/skills_technologies.yaml` into the `skills` table; skill frequency and co-occurrence are exposed as `skill_frequency` / `skill_cooccurrence` views.
-- **Master data**: `companies`, `portals`, `skills`, `job_titles`, and `portal_runs` tables (see `db/init/02_master_data.sql`). Apply to an existing volume with `make migrate`, then `make seed-master`.
-- **Dashboard**: Metabase reads these tables/views; run `docker compose exec -T prefect-scheduler python - < scripts/setup_metabase.py` to (re)provision cards.
-
-
-
-## Testing
-
+### 2. Set Up Virtual Environment (Recommended)
 ```bash
-make venv    # create .venv + install requirements-dev.txt
-make test    # run pytest (see docs/TEST_CASES.md)
+python -m venv .venv
+
+# On Windows:
+.venv\Scripts\activate
+
+# On Linux/macOS:
+source .venv/bin/activate
 ```
 
-## Observability
+### 3. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
 
-- **Prefect metrics**: `PREFECT_API_ENABLE_METRICS=true` exposes Prometheus metrics
-  at `http://localhost:4200/metrics` (scraped by the `prefect` job in
-  `monitoring/prometheus.yml`).
-- **Grafana**: Prometheus datasource + `ETL Dashboards` are provisioned from
-  `monitoring/grafana/` (login admin/admin at http://localhost:3100).
-- **Prefect UI**: served at http://localhost:4200 (API reachable via
-  `PREFECT_UI_API_URL=http://localhost:4200/api`).
+*(Optional: Install development dependencies for running tests)*
+```bash
+pip install pytest
+```
+
+---
+
+## CLI Usage Guide
+
+The CLI entrypoint `main.py` provides comprehensive flags for crawling indices or equities, filtering expiries, selecting export formats, and inspecting market health.
+
+### 1. Fetch Major Index Option Chain (Default: NIFTY)
+```bash
+python main.py -s NIFTY
+```
+
+### 2. Fetch Bank Nifty Option Chain
+```bash
+python main.py -s BANKNIFTY
+```
+
+### 3. Fetch Equity Stock Option Chain (e.g., RELIANCE, TCS, INFY)
+Use the `--equity` flag:
+```bash
+python main.py -s RELIANCE --equity
+```
+
+### 4. Filter by Specific Expiry Date
+```bash
+python main.py -s NIFTY -e "03-Nov-2026"
+```
+
+### 5. Custom Export Formats
+Specify one or more formats (`csv`, `parquet`, `sqlite`, `json`, `all`):
+```bash
+python main.py -s NIFTY -f parquet sqlite
+```
+
+### 6. Dry Run / Inspect Only (No Disk Persistence)
+```bash
+python main.py -s NIFTY --no-save
+```
+
+### 7. Check Live NSE Market Status
+```bash
+python main.py --market-status
+```
+
+### 8. Enable Verbose Debug Logging
+```bash
+python main.py -s NIFTY -v
+```
+
+---
+
+## Programmatic Python API
+
+You can easily embed the pipeline inside quantitative trading strategies, notebooks, or automated schedulers:
+
+```python
+from core.session import NSESessionManager
+from core.crawler import NSEOptionChainCrawler
+from parsers.option_chain import OptionChainParser
+from storage.handler import StorageHandler
+
+# 1. Initialize session and crawler
+session_mgr = NSESessionManager()
+crawler = NSEOptionChainCrawler(session_manager=session_mgr)
+
+# 2. Fetch raw option chain data for NIFTY
+raw_payload = crawler.fetch_option_chain(symbol="NIFTY", is_index=True)
+
+# 3. Parse and extract structured DataFrames
+result = OptionChainParser.parse(raw_payload, symbol="NIFTY")
+
+# Access analytical metrics
+print(f"Spot Price   : {result.underlying_value}")
+print(f"ATM Strike   : {result.metrics['atm_strike']}")
+print(f"Max Pain     : {result.metrics['max_pain_strike']}")
+print(f"PCR (OI)     : {result.metrics['pcr_oi']}")
+
+# Access DataFrames
+calls_df = result.calls_df      # Call options only
+puts_df = result.puts_df        # Put options only
+chain_df = result.chain_df      # Aligned side-by-side option matrix
+
+# 4. Optional: Filter to nearest weekly expiry
+nearest_expiry = result.expiry_dates[0]
+weekly_result = OptionChainParser.filter_by_expiry(result, nearest_expiry)
+
+# 5. Persist to storage
+storage = StorageHandler()
+saved_files = storage.save_all(weekly_result, raw_payload=raw_payload, formats=["parquet", "sqlite"])
+```
+
+---
+
+## Database & Data Schema
+
+### 1. Side-by-Side Option Chain (`chain_df` / `option_chain`)
+| Column | Description |
+|---|---|
+| `expiryDate` | Expiry date of the option contract (e.g. `03-Nov-2026`) |
+| `CE_OI` | Open Interest on Call side |
+| `CE_Chg_OI` | Change in Open Interest on Call side |
+| `CE_Volume` | Total Traded Volume on Call side |
+| `CE_IV` | Implied Volatility on Call side |
+| `CE_LTP` | Last Traded Price (LTP) on Call side |
+| `CE_Change` | Absolute price change on Call side |
+| `strikePrice` | Strike price (central pivot) |
+| `PE_LTP` | Last Traded Price (LTP) on Put side |
+| `PE_Change` | Absolute price change on Put side |
+| `PE_IV` | Implied Volatility on Put side |
+| `PE_Volume` | Total Traded Volume on Put side |
+| `PE_Chg_OI` | Change in Open Interest on Put side |
+| `PE_OI` | Open Interest on Put side |
+
+### 2. Market Snapshots (`market_snapshots`)
+Stores time-series snapshots in SQLite for historical backtesting and trend analytics:
+- `symbol`, `timestamp`, `recorded_at`, `underlying_value`, `atm_strike`, `max_pain_strike`, `total_ce_oi`, `total_pe_oi`, `pcr_oi`, `total_ce_volume`, `total_pe_volume`, `pcr_volume`, `total_strikes`.
+
+---
+
+## Running Test Suite
+
+Execute the full automated pytest suite:
+```bash
+pytest tests/ -v
+```
+
+All 11 unit tests validate:
+- Session cookie warm-up, rate limit handling, and auto-recovery
+- Crawler retry backoff with jitter and HTML error trapping
+- NextApi and Classic JSON parsing compatibility
+- At-The-Money (ATM) and Max Pain calculation algorithms
+- CSV, Parquet, and SQLite storage reading and writing
+
+---
+
+## Compliance & Best Practices
+
+- **Polite Crawling**: Always use sensible request intervals (at least 1 second between requests) to respect server capacity.
+- **Market Hours**: Live updates stream dynamically during Indian market trading hours (9:15 AM to 3:30 PM IST, Monday through Friday). Outside market hours, endpoints reflect the last closing snapshot.
