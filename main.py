@@ -164,6 +164,17 @@ def main():
         help="Query and print current NSE market status without fetching option chain",
     )
     parser.add_argument(
+        "--serve",
+        action="store_true",
+        help="Start the interactive web UI analytics server",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8080,
+        help="Port to bind the web UI server (default: 8080)",
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -177,6 +188,12 @@ def main():
     setup_logging(level=log_level)
 
     try:
+        if args.serve:
+            from server import run_server
+
+            run_server(port=args.port)
+            return
+
         if args.market_status:
             crawler = NSEOptionChainCrawler()
             status = crawler.get_market_status()

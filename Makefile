@@ -1,4 +1,4 @@
-.PHONY: install run scrape-nifty scrape-banknifty market-status test clean
+.PHONY: install run scrape-nifty scrape-banknifty market-status test ui clean
 
 install:
 	pip install -r requirements.txt
@@ -14,6 +14,9 @@ scrape-banknifty:
 
 market-status:
 	python main.py --market-status
+
+ui:
+	python main.py --serve
 
 test:
 	pytest tests/ -v

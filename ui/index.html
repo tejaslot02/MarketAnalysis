@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NSE India Option Chain & Quantitative Analytics Terminal</title>
+  <meta name="description" content="Institutional-grade NSE India Option Chain visualizer with real-time Put-Call Ratio (PCR), Max Pain curve, At-The-Money (ATM) detection, and volatility analytics.">
+  <link rel="stylesheet" href="/ui/css/styles.css">
+  <!-- Chart.js for High Performance Canvas Charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Top Sticky Navigation Bar -->
+  <header class="navbar">
+    <a href="/" class="brand" id="brand-link">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">NSE Option Analytics</div>
+      </div>
+      <span class="brand-tag">Terminal</span>
+    </a>
+
+    <!-- Quick Index Switchers -->
+    <div class="symbol-selector-group" id="symbol-pills">
+      <button class="symbol-pill active" data-symbol="NIFTY" id="pill-nifty">NIFTY</button>
+      <button class="symbol-pill" data-symbol="BANKNIFTY" id="pill-banknifty">BANKNIFTY</button>
+      <button class="symbol-pill" data-symbol="FINNIFTY" id="pill-finnifty">FINNIFTY</button>
+      <button class="symbol-pill" data-symbol="MIDCPNIFTY" id="pill-midcpnifty">MIDCPNIFTY</button>
+    </div>
+
+    <!-- Stock Search Input -->
+    <div class="symbol-search-wrapper">
+      <svg class="symbol-search-icon" viewBox="0 0 24 24">
+        <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+      </svg>
+      <input type="text" id="symbol-search" class="symbol-search-input" placeholder="Stock (e.g. TCS)" title="Press Enter to load stock option chain">
+    </div>
+
+    <!-- Right Controls: Status & Auto-refresh -->
+    <div class="nav-actions">
+      <div class="market-status-badge" id="market-badge">
+        <span class="pulse-dot"></span>
+        <span id="market-status-text">Connecting...</span>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:0.4rem;">
+        <select id="auto-refresh-select" class="select-dropdown" title="Auto Refresh Rate">
+          <option value="15">Auto 15s</option>
+          <option value="30" selected>Auto 30s</option>
+          <option value="60">Auto 60s</option>
+          <option value="0">Manual Only</option>
+        </select>
+        <button class="btn-icon btn-primary" id="refresh-btn" title="Click to refresh data now">
+          <svg viewBox="0 0 24 24">
+            <path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+          </svg>
+          <span id="countdown-text">30s</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="container">
+
+    <!-- Top Heading for Semantic Structure & SEO -->
+    <h1 style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;">
+      NSE India Live Option Chain Quantitative Analysis Terminal
+    </h1>
+
+    <!-- Executive Stat Cards (Key Analytical Indicators) -->
+    <section class="metrics-grid" aria-label="Key Market Metrics">
+      <!-- 1. Spot Price -->
+      <article class="metric-card" id="card-spot">
+        <div class="metric-header">
+          <span>Underlying Spot</span>
+          <span class="metric-tooltip" title="Current live spot price reported by NSE India">ℹ</span>
+        </div>
+        <div class="metric-value-row">
+          <span class="metric-value" id="val-spot">--</span>
+        </div>
+        <div class="metric-footer" id="val-timestamp">
+          Connecting to NSE...
+        </div>
+      </article>
+
+      <!-- 2. ATM Strike -->
+      <article class="metric-card" id="card-atm">
+        <div class="metric-header">
+          <span>ATM Strike</span>
+          <span class="metric-tooltip" title="Closest strike price to current underlying spot price">ℹ</span>
+        </div>
+        <div class="metric-value-row">
+          <span class="metric-value" id="val-atm">--</span>
+          <span class="metric-sub" id="sub-atm">Distance: 0</span>
+        </div>
+        <div class="metric-footer">
+          Central pivot for straddle pricing
+        </div>
+      </article>
+
+      <!-- 3. Max Pain Strike -->
+      <article class="metric-card" id="card-maxpain">
+        <div class="metric-header">
+          <span>Max Pain Strike</span>
+          <span class="metric-tooltip" title="Strike where option writers face minimum total cumulative payout at expiry">ℹ</span>
+        </div>
+        <div class="metric-value-row">
+          <span class="metric-value" id="val-maxpain" style="color:var(--accent-gold);">--</span>
+          <span class="metric-sub gold" id="sub-maxpain">Bias: --</span>
+        </div>
+        <div class="metric-footer">
+          Gravitational expiry settlement magnet
+        </div>
+      </article>
+
+      <!-- 4. Put-Call Ratio (PCR) -->
+      <article class="metric-card" id="card-pcr">
+        <div class="metric-header">
+          <span>Put-Call Ratio (OI)</span>
+          <span class="metric-tooltip" title="Total Put Open Interest divided by Total Call Open Interest">ℹ</span>
+        </div>
+        <div class="metric-value-row">
+          <span class="metric-value" id="val-pcr">--</span>
+          <span class="metric-sub" id="sub-pcr">Calculating...</span>
+        </div>
+        <div class="metric-footer">
+          <span id="footer-pcr-vol">PCR (Vol): --</span>
+        </div>
+      </article>
+
+      <!-- 5. Total Open Interest Ratio -->
+      <article class="metric-card" id="card-oi-ratio">
+        <div class="metric-header">
+          <span>Total Open Interest</span>
+          <span class="metric-tooltip" title="Combined market open contracts (Calls in Blue, Puts in Red)">ℹ</span>
+        </div>
+        <div class="metric-value-row">
+          <span class="metric-value" id="val-total-oi">--</span>
+        </div>
+        <div class="ratio-bar-container">
+          <div class="ratio-bar-fill" id="bar-oi-fill" style="width: 50%;"></div>
+        </div>
+        <div class="metric-footer">
+          <span id="footer-ce-oi">Calls: --</span>
+          <span id="footer-pe-oi">Puts: --</span>
+        </div>
+      </article>
+    </section>
+
+    <!-- Key Support & Resistance Banner -->
+    <section class="insights-banner" aria-label="Support and Resistance Callouts">
+      <div class="insight-item">
+        <div class="insight-icon">🛡️</div>
+        <div class="insight-text-group">
+          <h5>Major Support (Highest Put OI)</h5>
+          <p id="banner-support">Analyzing...</p>
+        </div>
+      </div>
+      <div class="insight-item">
+        <div class="insight-icon">⚔️</div>
+        <div class="insight-text-group">
+          <h5>Major Resistance (Highest Call OI)</h5>
+          <p id="banner-resistance">Analyzing...</p>
+        </div>
+      </div>
+      <div class="insight-item">
+        <div class="insight-icon">💡</div>
+        <div class="insight-text-group">
+          <h5>Market Bias Interpretation</h5>
+          <p id="banner-bias">PCR & Max Pain aligned</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Controls Bar -->
+    <section class="controls-bar" aria-label="Option Chain Filters">
+      <div class="controls-left">
+        <span class="control-label">Expiry Date:</span>
+        <select id="expiry-select" class="select-dropdown" aria-label="Select Expiry Date">
+          <option value="">Loading expiries...</option>
+        </select>
+
+        <span class="control-label" style="margin-left:0.5rem;">Strikes Range:</span>
+        <div class="range-pill-group" id="range-pills">
+          <button class="range-pill" data-range="5">±5</button>
+          <button class="range-pill" data-range="10">±10</button>
+          <button class="range-pill active" data-range="15">±15</button>
+          <button class="range-pill" data-range="25">±25</button>
+          <button class="range-pill" data-range="all">All</button>
+        </div>
+      </div>
+
+      <div class="controls-right">
+        <input type="text" id="strike-search" class="symbol-search-input" placeholder="Find Strike..." style="width:130px;" aria-label="Search strike price">
+        
+        <!-- One-Click Export Buttons -->
+        <button class="btn-icon" onclick="exportData('csv')" title="Download CSV dataset">
+          <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          CSV
+        </button>
+        <button class="btn-icon" onclick="exportData('parquet')" title="Download Apache Parquet file">
+          <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          Parquet
+        </button>
+        <button class="btn-icon" onclick="exportData('json')" title="Download Raw JSON payload">
+          <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          JSON
+        </button>
+      </div>
+    </section>
+
+    <!-- Analytics Tabs Navigation -->
+    <nav class="tab-nav" aria-label="Analysis Views">
+      <button class="tab-btn active" data-tab="matrix" id="tab-matrix-btn">
+        <span>📊</span> Option Chain Matrix
+      </button>
+      <button class="tab-btn" data-tab="charts" id="tab-charts-btn">
+        <span>📈</span> Open Interest Analysis
+      </button>
+      <button class="tab-btn" data-tab="maxpain" id="tab-maxpain-btn">
+        <span>🎯</span> Max Pain & Settlement
+      </button>
+      <button class="tab-btn" data-tab="ivsmile" id="tab-ivsmile-btn">
+        <span>⚡</span> IV Smile & Skew
+      </button>
+      <button class="tab-btn" data-tab="snapshots" id="tab-snapshots-btn">
+        <span>📜</span> Historical Snapshots
+      </button>
+    </nav>
+
+    <!-- TAB 1: Option Chain Matrix Table -->
+    <section id="matrix" class="tab-content active" aria-label="Option Chain Table">
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="option-table" id="chain-table">
+            <thead>
+              <tr>
+                <th colspan="6" class="th-calls-super">CALL OPTIONS (CE)</th>
+                <th class="th-strike-super">STRIKE</th>
+                <th colspan="6" class="th-puts-super">PUT OPTIONS (PE)</th>
+              </tr>
+              <tr>
+                <th>OI</th>
+                <th>Chg OI</th>
+                <th>Volume</th>
+                <th>IV</th>
+                <th>LTP</th>
+                <th>Change</th>
+                <th class="th-strike">Strike Price</th>
+                <th>Change</th>
+                <th>LTP</th>
+                <th>IV</th>
+                <th>Volume</th>
+                <th>Chg OI</th>
+                <th>OI</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-tbody">
+              <tr>
+                <td colspan="13" style="text-align:center; padding: 2.5rem; color: var(--text-muted);">
+                  Loading live option chain from NSE India...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: Open Interest Charts -->
+    <section id="charts" class="tab-content" aria-label="Open Interest Charts">
+      <div class="charts-grid">
+        <article class="chart-card">
+          <div class="chart-header">
+            <h2 class="chart-title"><span>📊</span> Strike-wise Open Interest (Support & Resistance)</h2>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-oi"></canvas>
+          </div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-header">
+            <h2 class="chart-title"><span>🔄</span> Intraday Buildup & Unwinding (Change in OI)</h2>
+          </div>
+          <div class="chart-canvas-wrapper">
+            <canvas id="chart-oi-chg"></canvas>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- TAB 3: Max Pain Analysis -->
+    <section id="maxpain" class="tab-content" aria-label="Max Pain Settlement Analysis">
+      <article class="chart-card" style="margin-bottom: 1.5rem;">
+        <div class="chart-header">
+          <h2 class="chart-title"><span>🎯</span> Option Writer Cumulative Payout Liability (Max Pain Curve)</h2>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+          Option sellers maximize profits when the index expires at the strike where cumulative payout to buyers is minimized (the curve's valley).
+        </p>
+        <div class="chart-canvas-wrapper" style="height: 380px;">
+          <canvas id="chart-maxpain"></canvas>
+        </div>
+      </article>
+    </section>
+
+    <!-- TAB 4: Implied Volatility Smile -->
+    <section id="ivsmile" class="tab-content" aria-label="Implied Volatility Curve">
+      <article class="chart-card">
+        <div class="chart-header">
+          <h2 class="chart-title"><span>⚡</span> Implied Volatility (IV) Smile & Skew Curve</h2>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+          Compares Call IV vs Put IV across strike prices to evaluate pricing skew and tail-risk hedging demand.
+        </p>
+        <div class="chart-canvas-wrapper" style="height: 380px;">
+          <canvas id="chart-iv"></canvas>
+        </div>
+      </article>
+    </section>
+
+    <!-- TAB 5: Historical Snapshots -->
+    <section id="snapshots" class="tab-content" aria-label="Historical Snapshots">
+      <div class="table-card">
+        <div class="table-responsive">
+          <table class="option-table" id="snapshots-table" style="text-align: right;">
+            <thead>
+              <tr style="background:#0f1626;">
+                <th style="text-align:left;">Recorded Timestamp</th>
+                <th>Symbol</th>
+                <th>Underlying Spot</th>
+                <th>ATM Strike</th>
+                <th>Max Pain Strike</th>
+                <th>PCR (OI)</th>
+                <th>Total OI</th>
+              </tr>
+            </thead>
+            <tbody id="snapshots-tbody">
+              <tr>
+                <td colspan="7" style="text-align:center; padding: 2rem; color: var(--text-muted);">
+                  Click tab to load recorded SQLite snapshots.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Loading Backdrop Overlay -->
+  <div class="loading-overlay" id="loading-overlay" aria-hidden="true">
+    <div class="spinner"></div>
+    <div class="loading-text">Fetching Option Chain from NSE India...</div>
+  </div>
+
+  <script src="/ui/js/app.js"></script>
+</body>
+</html>

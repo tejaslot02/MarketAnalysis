@@ -5,6 +5,41 @@
 
 ---
 
+## [Commit 3a39b96] — 2026-10-30
+- **Commit**: `3a39b96`
+- **Author**: Tejas `<tejaslot02@gmail.com>`
+- **Message**: `feat(ui): add institutional Option Chain & Quantitative Analytics web terminal and REST API`
+- **Affected Files**:
+  - [`ui/index.html`](file:///e:/Work/MarketAnalysis/ui/index.html)
+  - [`ui/css/styles.css`](file:///e:/Work/MarketAnalysis/ui/css/styles.css)
+  - [`ui/js/app.js`](file:///e:/Work/MarketAnalysis/ui/js/app.js)
+  - [`server.py`](file:///e:/Work/MarketAnalysis/server.py)
+  - [`main.py`](file:///e:/Work/MarketAnalysis/main.py)
+  - [`Makefile`](file:///e:/Work/MarketAnalysis/Makefile)
+  - [`README.md`](file:///e:/Work/MarketAnalysis/README.md)
+  - [`CHANGELOG.md`](file:///e:/Work/MarketAnalysis/CHANGELOG.md)
+- **Detailed Changes**:
+  - **Modern Institutional UI (`ui/`)**:
+    - Created an obsidian dark-mode interface (`#07090e`, `#0d121d`) using Google Fonts (`Outfit`, `JetBrains Mono`) and glassmorphic panels.
+    - Built interactive 5-tab analysis suite:
+      1. **Option Chain Matrix**: Live Calls/Strikes/Puts table with ITM shading, glowing ATM row, and relative Open Interest / Volume distribution bars.
+      2. **Open Interest Analysis**: Grouped bar charts showing Call OI vs Put OI with automated Major Support and Major Resistance callouts.
+      3. **Intraday Change in OI**: Bar chart showing institutional buildup, call writing, and short covering.
+      4. **Max Pain Settlement Curve**: Area loss curve mapping option writers' cumulative payout liability to pinpoint the lowest payout settlement strike.
+      5. **Implied Volatility (IV) Smile**: Spline curve of Call IV vs Put IV across strikes.
+      6. **Historical Snapshots**: SQLite snapshot history log.
+    - Added quick index selectors (`NIFTY`, `BANKNIFTY`, `FINNIFTY`, `MIDCPNIFTY`) and custom equity stock search.
+    - Added configurable auto-refresh rates (15s, 30s, 60s, manual) with countdown timer and live market operational status badge.
+    - Added one-click export actions for CSV, Parquet, and JSON datasets.
+  - **Lightweight Multi-Threaded Web Server & API (`server.py`)**:
+    - Implemented `server.py` serving static assets and REST endpoints (`/api/option-chain`, `/api/market-status`, `/api/snapshots`, `/api/export`).
+    - Added in-memory caching with TTL to ensure rapid UI responsiveness while safeguarding against NSE rate limits.
+  - **CLI & Automation Integration**:
+    - Added `--serve` and `--port` CLI options to `main.py`.
+    - Added `make ui` target to `Makefile`.
+
+---
+
 ## [Commit 79463a2] — 2026-10-30
 - **Commit**: `79463a2`
 - **Author**: Tejas `<tejaslot02@gmail.com>`

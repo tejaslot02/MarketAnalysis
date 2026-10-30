@@ -66,6 +66,13 @@ MarketAnalysis/
 │   ├── raw/                 # Output directory for raw JSON archives
 │   ├── market_analysis.db   # SQLite database
 │   └── .gitkeep
+├── ui/
+│   ├── index.html           # Institutional analytical web dashboard
+│   ├── css/
+│   │   └── styles.css       # Obsidian dark-mode styling and glassmorphic components
+│   └── js/
+│       └── app.js           # Live matrix renderer, Chart.js integrations, and auto-refresh
+├── server.py                # Multi-threaded web server & REST API
 ├── main.py                  # Production CLI entrypoint
 ├── requirements.txt         # Minimal production dependencies
 ├── pyproject.toml           # Project packaging and tool configuration
@@ -150,7 +157,18 @@ python main.py -s NIFTY --no-save
 python main.py --market-status
 ```
 
-### 8. Enable Verbose Debug Logging
+### 8. Launch Interactive Web UI Analytics Terminal
+Start the local institutional web dashboard on port 8080:
+```bash
+python main.py --serve
+# Or:
+python server.py
+# Or:
+make ui
+```
+Then open your browser at **`http://127.0.0.1:8080/`**.
+
+### 9. Enable Verbose Debug Logging
 ```bash
 python main.py -s NIFTY -v
 ```
