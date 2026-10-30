@@ -158,15 +158,19 @@ python main.py --market-status
 ```
 
 ### 8. Launch Interactive Web UI Analytics Terminal
-Start the local institutional web dashboard on port 8080:
+Start the local institutional web dashboard on port 8080 using the one-click script:
 ```bash
+# On Windows (one-click launcher with auto-browser opening):
+run_server.bat
+
+# On Linux / macOS / WSL:
+./run_server.sh
+
+# Or directly via Python / Make:
 python main.py --serve
-# Or:
-python server.py
-# Or:
 make ui
 ```
-Then open your browser at **`http://127.0.0.1:8080/`**.
+The script automatically opens your browser at **`http://127.0.0.1:8080/`**.
 
 ### 9. Enable Verbose Debug Logging
 ```bash

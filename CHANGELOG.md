@@ -5,6 +5,21 @@
 
 ---
 
+## [Commit 858303d] — 2026-10-30
+- **Commit**: `858303d`
+- **Author**: Tejas `<tejaslot02@gmail.com>`
+- **Message**: `feat(runner): add one-click server launcher scripts for Windows and Unix`
+- **Affected Files**:
+  - [`run_server.bat`](file:///e:/Work/MarketAnalysis/run_server.bat)
+  - [`run_server.sh`](file:///e:/Work/MarketAnalysis/run_server.sh)
+  - [`README.md`](file:///e:/Work/MarketAnalysis/README.md)
+  - [`CHANGELOG.md`](file:///e:/Work/MarketAnalysis/CHANGELOG.md)
+- **Detailed Changes**:
+  - Created [`run_server.bat`](file:///e:/Work/MarketAnalysis/run_server.bat) providing one-click Windows execution, virtual environment detection (`.venv`/`venv`), port customization, and automatic browser launch to `http://127.0.0.1:8080/`.
+  - Created [`run_server.sh`](file:///e:/Work/MarketAnalysis/run_server.sh) providing cross-platform shell launch for Linux, macOS, and WSL environments with browser opening support.
+
+---
+
 ## [Commit 3a39b96] — 2026-10-30
 - **Commit**: `3a39b96`
 - **Author**: Tejas `<tejaslot02@gmail.com>`
