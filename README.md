@@ -160,7 +160,10 @@ python main.py --market-status
 ### 8. Launch Interactive Web UI Analytics Terminal
 Start the local institutional web dashboard on port 8080 using the one-click script:
 ```bash
-# On Windows (one-click launcher with auto-browser opening):
+# On Windows (PowerShell):
+.\run_server.ps1
+
+# On Windows (Command Prompt / Batch):
 run_server.bat
 
 # On Linux / macOS / WSL:

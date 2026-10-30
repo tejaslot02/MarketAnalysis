@@ -5,6 +5,22 @@
 
 ---
 
+## [Commit c12f37b] — 2026-10-30
+- **Commit**: `c12f37b`
+- **Author**: Tejas `<tejaslot02@gmail.com>`
+- **Message**: `fix(runner): resolve batch syntax error in run_server.bat and add native run_server.ps1`
+- **Affected Files**:
+  - [`run_server.bat`](file:///e:/Work/MarketAnalysis/run_server.bat)
+  - [`run_server.ps1`](file:///e:/Work/MarketAnalysis/run_server.ps1)
+  - [`README.md`](file:///e:/Work/MarketAnalysis/README.md)
+  - [`CHANGELOG.md`](file:///e:/Work/MarketAnalysis/CHANGELOG.md)
+- **Detailed Changes**:
+  - Fixed command separator syntax error caused by unescaped ampersand (`&`) in `run_server.bat`.
+  - Replaced nested delay expansion and unescaped parenthesis in batch banner echoes.
+  - Added native PowerShell launcher script [`run_server.ps1`](file:///e:/Work/MarketAnalysis/run_server.ps1) for seamless Windows PowerShell execution.
+
+---
+
 ## [Commit 858303d] — 2026-10-30
 - **Commit**: `858303d`
 - **Author**: Tejas `<tejaslot02@gmail.com>`
