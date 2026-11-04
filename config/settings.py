@@ -23,6 +23,7 @@ class NSEConfig:
     equities_api_url: str = "https://www.nseindia.com/api/option-chain-equities"
     market_status_url: str = "https://www.nseindia.com/api/marketStatus"
     all_indices_url: str = "https://www.nseindia.com/api/allIndices"
+    quote_equity_url: str = "https://www.nseindia.com/api/quote-equity"
 
     # Standard Major Indices
     standard_indices: List[str] = field(

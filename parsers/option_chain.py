@@ -88,12 +88,19 @@ class OptionChainParser:
             raise ValueError("Invalid raw payload: expected non-empty dictionary.")
 
         # Check payload format
+        sym_name = symbol or raw_payload.get("_symbol", "UNKNOWN")
         if "records" in raw_payload:
-            return cls._parse_classic_payload(raw_payload, symbol)
+            return cls._parse_classic_payload(raw_payload, sym_name)
         elif "data" in raw_payload:
-            return cls._parse_nextapi_payload(raw_payload, symbol)
+            return cls._parse_nextapi_payload(raw_payload, sym_name)
         else:
-            raise ValueError("Unrecognized NSE option chain payload format (missing 'records' and 'data').")
+            err_msg = raw_payload.get("error") or raw_payload.get("message")
+            detail = f" (NSE response: {err_msg})" if err_msg else ""
+            raise ValueError(
+                f"No option chain data available for symbol '{sym_name}'{detail}. "
+                "Note: Only securities actively traded in the NSE Futures & Options (F&O) segment "
+                "(e.g., RELIANCE, TCS, INFY, NIFTY) have option chains."
+            )
 
     @classmethod
     def _parse_nextapi_payload(cls, payload: Dict[str, Any], symbol: Optional[str]) -> OptionChainResult:
@@ -482,6 +489,11 @@ class OptionChainParser:
             "CE_OI": "sum" if "CE_OI" in chain_df.columns else lambda x: 0,
             "PE_OI": "sum" if "PE_OI" in chain_df.columns else lambda x: 0,
         }).reset_index()
+
+        # Guard: If total open interest is zero, Max Pain cannot be determined
+        total_oi = float(grouped["CE_OI"].sum() + grouped["PE_OI"].sum())
+        if total_oi <= 0:
+            return None
 
         min_loss = float("inf")
         best_strike = float(strikes[0])

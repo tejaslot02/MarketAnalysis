@@ -2,6 +2,7 @@
 
 import logging
 import random
+import threading
 import time
 from typing import Any, Dict, Optional
 
@@ -51,6 +52,12 @@ class NSEDataFormatError(NSEException):
     pass
 
 
+class NSESymbolNotFoundError(NSEException):
+    """Raised when a symbol does not exist or has no derivatives/option chain data on NSE."""
+
+    pass
+
+
 class NSESessionManager:
     """Manages an authenticated, cookie-warmed session to communicate with NSE India endpoints.
 
@@ -70,6 +77,7 @@ class NSESessionManager:
         self._session: Optional[Any] = None
         self._last_warmed: float = 0.0
         self._is_warmed: bool = False
+        self._lock = threading.RLock()
 
     def _create_raw_session(self) -> Any:
         """Instantiates a fresh requests or curl_cffi Session object."""
@@ -87,71 +95,75 @@ class NSESessionManager:
     def warm_up(self, force: bool = False) -> bool:
         """Visits NSE homepage and Option Chain page to harvest mandatory session cookies.
 
+        Thread-safe via internal reentrant lock.
+
         Args:
             force: If True, discards existing session and performs a fresh handshake.
 
         Returns:
             True if session was warmed successfully, False otherwise.
         """
-        now = time.time()
-        if not force and self._is_warmed and (now - self._last_warmed < self.cfg.session_ttl_seconds):
-            logger.debug("Session is already warm and valid (age: %.1fs)", now - self._last_warmed)
-            return True
+        with self._lock:
+            now = time.time()
+            if not force and self._is_warmed and (now - self._last_warmed < self.cfg.session_ttl_seconds):
+                logger.debug("Session is already warm and valid (age: %.1fs)", now - self._last_warmed)
+                return True
 
-        logger.info("Initializing fresh NSE session and harvesting cookies...")
-        if self._session is not None:
-            try:
-                self._session.close()
-            except Exception:
-                pass
+            logger.info("Initializing fresh NSE session and harvesting cookies...")
+            if self._session is not None:
+                try:
+                    self._session.close()
+                except Exception:
+                    pass
 
-        self._session = self._create_raw_session()
-        self._is_warmed = False
-
-        try:
-            # Stage 1: Hit NSE Homepage to acquire primary perimeter cookies
-            logger.debug("Visiting base homepage: %s", self.cfg.base_url)
-            r1 = self._session.get(
-                self.cfg.base_url,
-                headers=self.cfg.default_headers,
-                timeout=self.cfg.request_timeout,
-            )
-            logger.debug("Homepage status: %d, Cookies: %s", r1.status_code, list(self.get_cookies().keys()))
-
-            # Polite delay with slight jitter to mimic human navigation
-            delay = random.uniform(self.cfg.polite_delay_min, self.cfg.polite_delay_max)
-            time.sleep(delay)
-
-            # Stage 2: Hit Option Chain landing page to harvest secondary tracking cookies
-            logger.debug("Visiting Option Chain portal: %s", self.cfg.option_chain_page_url)
-            r2 = self._session.get(
-                self.cfg.option_chain_page_url,
-                headers=self.cfg.default_headers,
-                timeout=self.cfg.request_timeout,
-            )
-            logger.debug("Option chain page status: %d, Cookies: %s", r2.status_code, list(self.get_cookies().keys()))
-
-            # Stage 3: Prepare API headers for subsequent JSON requests
-            self._session.headers.update(self.cfg.api_headers)
-
-            self._is_warmed = True
-            self._last_warmed = time.time()
-            logger.info(
-                "NSE session successfully warmed up. Active cookies: %s",
-                list(self.get_cookies().keys()),
-            )
-            return True
-
-        except Exception as exc:
+            self._session = self._create_raw_session()
             self._is_warmed = False
-            logger.warning("Failed during NSE session warm-up: %s", exc)
-            return False
+
+            try:
+                # Stage 1: Hit NSE Homepage to acquire primary perimeter cookies
+                logger.debug("Visiting base homepage: %s", self.cfg.base_url)
+                r1 = self._session.get(
+                    self.cfg.base_url,
+                    headers=self.cfg.default_headers,
+                    timeout=self.cfg.request_timeout,
+                )
+                logger.debug("Homepage status: %d, Cookies: %s", r1.status_code, list(self.get_cookies().keys()))
+
+                # Polite delay with slight jitter to mimic human navigation
+                delay = random.uniform(self.cfg.polite_delay_min, self.cfg.polite_delay_max)
+                time.sleep(delay)
+
+                # Stage 2: Hit Option Chain landing page to harvest secondary tracking cookies
+                logger.debug("Visiting Option Chain portal: %s", self.cfg.option_chain_page_url)
+                r2 = self._session.get(
+                    self.cfg.option_chain_page_url,
+                    headers=self.cfg.default_headers,
+                    timeout=self.cfg.request_timeout,
+                )
+                logger.debug("Option chain page status: %d, Cookies: %s", r2.status_code, list(self.get_cookies().keys()))
+
+                # Stage 3: Prepare API headers for subsequent JSON requests
+                self._session.headers.update(self.cfg.api_headers)
+
+                self._is_warmed = True
+                self._last_warmed = time.time()
+                logger.info(
+                    "NSE session successfully warmed up. Active cookies: %s",
+                    list(self.get_cookies().keys()),
+                )
+                return True
+
+            except Exception as exc:
+                self._is_warmed = False
+                logger.warning("Failed during NSE session warm-up: %s", exc)
+                return False
 
     def is_warm(self) -> bool:
         """Checks whether the session is currently warm and within its TTL."""
-        if not self._is_warmed or self._session is None:
-            return False
-        return (time.time() - self._last_warmed) < self.cfg.session_ttl_seconds
+        with self._lock:
+            if not self._is_warmed or self._session is None:
+                return False
+            return (time.time() - self._last_warmed) < self.cfg.session_ttl_seconds
 
     def get_cookies(self) -> Dict[str, str]:
         """Returns the dictionary of currently harvested session cookies."""

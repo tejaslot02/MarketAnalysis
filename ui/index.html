@@ -48,6 +48,13 @@
         <span id="market-status-text">Connecting...</span>
       </div>
 
+      <!-- Theme Switcher -->
+      <select id="theme-select" class="select-dropdown" title="Select UI Color Theme" aria-label="Color Theme">
+        <option value="pastel-light" selected>🌸 Pastel Day</option>
+        <option value="pastel-dark">🌙 Pastel Dusk</option>
+        <option value="dark">🌑 Classic Dark</option>
+      </select>
+
       <div style="display:flex; align-items:center; gap:0.4rem;">
         <select id="auto-refresh-select" class="select-dropdown" title="Auto Refresh Rate">
           <option value="15">Auto 15s</option>
@@ -332,7 +339,7 @@
         <div class="table-responsive">
           <table class="option-table" id="snapshots-table" style="text-align: right;">
             <thead>
-              <tr style="background:#0f1626;">
+              <tr class="snapshots-header-row">
                 <th style="text-align:left;">Recorded Timestamp</th>
                 <th>Symbol</th>
                 <th>Underlying Spot</th>
@@ -361,6 +368,9 @@
     <div class="spinner"></div>
     <div class="loading-text">Fetching Option Chain from NSE India...</div>
   </div>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
   <script src="/ui/js/app.js"></script>
 </body>

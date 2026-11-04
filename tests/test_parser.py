@@ -101,3 +101,19 @@ def test_max_pain_calculation():
     ])
     max_pain = OptionChainParser.calculate_max_pain(df)
     assert max_pain == 110.0
+
+
+def test_parse_invalid_payload_raises():
+    """Validates that unrecognized or empty payload raises informative ValueError."""
+    with pytest.raises(ValueError, match="No option chain data available for symbol 'JPL'"):
+        OptionChainParser.parse({"error": "Resource not found"}, symbol="JPL")
+
+
+def test_max_pain_zero_oi():
+    """Validates that zero OI returns None without dividing or misbehaving."""
+    df = pd.DataFrame([
+        {"strikePrice": 100.0, "CE_OI": 0, "PE_OI": 0},
+        {"strikePrice": 110.0, "CE_OI": 0, "PE_OI": 0},
+    ])
+    assert OptionChainParser.calculate_max_pain(df) is None
+

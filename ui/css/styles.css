@@ -1,30 +1,231 @@
 /* ==============================================================================
    NSE Market Analysis - Institutional Option Chain & Analytics Design System
+   Themes: Pastel Light (Default), Pastel Dusk, Classic Dark
    ============================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
-:root {
+/* ==============================================================================
+   THEME PALETTES
+   ============================================================================== */
+
+/* 1. PASTEL LIGHT (Default) - Soft Porcelain & Lavender Daylight Theme */
+:root,
+[data-theme="pastel-light"] {
+  /* Color Palette */
+  --bg-primary: #f6f8fd;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #eff3fa;
+  --bg-card: rgba(255, 255, 255, 0.92);
+  --bg-card-hover: #ffffff;
+  --bg-navbar: rgba(255, 255, 255, 0.9);
+
+  /* Background Ambient Gradients */
+  --bg-gradient-1: rgba(165, 180, 252, 0.22);
+  --bg-gradient-2: rgba(110, 231, 183, 0.16);
+
+  /* Table Highlights (ITM, ATM) */
+  --bg-itm-call: rgba(254, 243, 199, 0.55);
+  --bg-itm-put: rgba(254, 243, 199, 0.55);
+  --bg-atm: rgba(224, 231, 255, 0.7);
+  --td-strike-bg: #f8fafc;
+  --td-atm-bg: #e0e7ff;
+  --table-hover-bg: rgba(99, 102, 241, 0.06);
+
+  /* Table Super & Sub Headers */
+  --th-calls-bg: #e0f2fe;
+  --th-calls-text: #0284c7;
+  --th-puts-bg: #ffe4e6;
+  --th-puts-text: #e11d48;
+  --th-strike-bg: #fef3c7;
+  --th-strike-text: #d97706;
+  --th-sub-bg: #f1f5f9;
+  --th-strike-col-bg: #e2e8f0;
+
+  /* Distribution Bars */
+  --oi-bar-call-gradient: linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.85));
+  --oi-bar-put-gradient: linear-gradient(270deg, transparent, rgba(253, 164, 175, 0.85));
+
+  /* Borders & Dividers */
+  --border-subtle: #e2e8f0;
+  --border-focus: #818cf8;
+  --border-atm: #a5b4fc;
+  --card-glow-line: rgba(129, 140, 248, 0.6);
+
+  /* Typography Colors */
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --text-inverse: #ffffff;
+  --brand-title-gradient: linear-gradient(135deg, #1e293b, #4338ca);
+
+  /* Financial Accents (Soft Pastel Tones) */
+  --bullish: #059669;
+  --bullish-glow: rgba(16, 185, 129, 0.2);
+  --bullish-dim: rgba(16, 185, 129, 0.12);
+  --bearish: #e11d48;
+  --bearish-glow: rgba(225, 29, 72, 0.2);
+  --bearish-dim: rgba(225, 29, 72, 0.12);
+  --accent-gold: #d97706;
+  --accent-gold-glow: rgba(217, 119, 6, 0.25);
+  --accent-indigo: #6366f1;
+  --accent-cyan: #0284c7;
+
+  /* Buttons & Pills */
+  --primary-gradient: linear-gradient(135deg, #6366f1, #818cf8);
+  --primary-hover-gradient: linear-gradient(135deg, #4f46e5, #6366f1);
+  --primary-shadow: rgba(99, 102, 241, 0.28);
+  --pill-hover-bg: rgba(99, 102, 241, 0.08);
+
+  /* Shadows & Glassmorphism */
+  --shadow-sm: 0 1px 3px rgba(148, 163, 184, 0.2);
+  --shadow-md: 0 4px 14px rgba(148, 163, 184, 0.15);
+  --shadow-lg: 0 10px 25px -5px rgba(148, 163, 184, 0.2);
+  --shadow-glow: 0 0 20px rgba(129, 140, 248, 0.2);
+  --backdrop-blur: blur(16px);
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+  --overlay-bg: rgba(248, 250, 252, 0.85);
+
+  /* Insights Banner */
+  --banner-bg: linear-gradient(135deg, rgba(224, 231, 255, 0.55), rgba(224, 242, 254, 0.55));
+  --banner-border: rgba(165, 180, 252, 0.6);
+  --banner-icon-bg: rgba(165, 180, 252, 0.35);
+  --banner-icon-color: #4f46e5;
+}
+
+/* 2. PASTEL DUSK - Velvet Slate & Pastel Twilight Theme */
+[data-theme="pastel-dark"] {
+  /* Color Palette */
+  --bg-primary: #151722;
+  --bg-secondary: #1c1f2e;
+  --bg-tertiary: #24283b;
+  --bg-card: rgba(28, 31, 46, 0.85);
+  --bg-card-hover: rgba(36, 40, 59, 0.95);
+  --bg-navbar: rgba(21, 23, 34, 0.9);
+
+  /* Background Ambient Gradients */
+  --bg-gradient-1: rgba(129, 140, 248, 0.12);
+  --bg-gradient-2: rgba(52, 211, 153, 0.08);
+
+  /* Table Highlights (ITM, ATM) */
+  --bg-itm-call: rgba(251, 191, 36, 0.09);
+  --bg-itm-put: rgba(251, 191, 36, 0.09);
+  --bg-atm: rgba(129, 140, 248, 0.22);
+  --td-strike-bg: #191c2b;
+  --td-atm-bg: #2b3356;
+  --table-hover-bg: rgba(129, 140, 248, 0.1);
+
+  /* Table Super & Sub Headers */
+  --th-calls-bg: rgba(56, 189, 248, 0.16);
+  --th-calls-text: #7dd3fc;
+  --th-puts-bg: rgba(244, 63, 94, 0.16);
+  --th-puts-text: #fda4af;
+  --th-strike-bg: rgba(251, 191, 36, 0.16);
+  --th-strike-text: #fde68a;
+  --th-sub-bg: #181b28;
+  --th-strike-col-bg: #202438;
+
+  /* Distribution Bars */
+  --oi-bar-call-gradient: linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.75));
+  --oi-bar-put-gradient: linear-gradient(270deg, transparent, rgba(253, 164, 175, 0.75));
+
+  /* Borders & Dividers */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-focus: rgba(165, 180, 252, 0.6);
+  --border-atm: rgba(165, 180, 252, 0.5);
+  --card-glow-line: rgba(165, 180, 252, 0.4);
+
+  /* Typography Colors */
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-inverse: #0f172a;
+  --brand-title-gradient: linear-gradient(to right, #ffffff, #c7d2fe);
+
+  /* Financial Accents (Pastel Glow) */
+  --bullish: #6ee7b7;
+  --bullish-glow: rgba(110, 231, 183, 0.25);
+  --bullish-dim: rgba(110, 231, 183, 0.14);
+  --bearish: #fda4af;
+  --bearish-glow: rgba(253, 164, 175, 0.25);
+  --bearish-dim: rgba(253, 164, 175, 0.14);
+  --accent-gold: #fde047;
+  --accent-gold-glow: rgba(253, 224, 71, 0.25);
+  --accent-indigo: #a5b4fc;
+  --accent-cyan: #7dd3fc;
+
+  /* Buttons & Pills */
+  --primary-gradient: linear-gradient(135deg, #6366f1, #818cf8);
+  --primary-hover-gradient: linear-gradient(135deg, #4f46e5, #6366f1);
+  --primary-shadow: rgba(99, 102, 241, 0.35);
+  --pill-hover-bg: rgba(255, 255, 255, 0.06);
+
+  /* Shadows & Glassmorphism */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.55);
+  --shadow-glow: 0 0 20px rgba(129, 140, 248, 0.25);
+  --backdrop-blur: blur(16px);
+  --scrollbar-thumb: #2d334a;
+  --scrollbar-thumb-hover: #3d4563;
+  --overlay-bg: rgba(21, 23, 34, 0.8);
+
+  /* Insights Banner */
+  --banner-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.16), rgba(6, 182, 212, 0.1));
+  --banner-border: rgba(129, 140, 248, 0.35);
+  --banner-icon-bg: rgba(129, 140, 248, 0.22);
+  --banner-icon-color: #c7d2fe;
+}
+
+/* 3. CLASSIC DARK - Deep Obsidian Institutional Theme */
+[data-theme="dark"] {
   /* Color Palette - Deep Slate / Obsidian Dark Mode */
   --bg-primary: #07090e;
   --bg-secondary: #0d121d;
   --bg-tertiary: #141c2e;
   --bg-card: rgba(19, 27, 44, 0.75);
   --bg-card-hover: rgba(26, 37, 60, 0.85);
+  --bg-navbar: rgba(7, 9, 14, 0.85);
+
+  /* Background Ambient Gradients */
+  --bg-gradient-1: rgba(99, 102, 241, 0.08);
+  --bg-gradient-2: rgba(16, 185, 129, 0.05);
+
+  /* Table Highlights (ITM, ATM) */
   --bg-itm-call: rgba(245, 158, 11, 0.07);
   --bg-itm-put: rgba(245, 158, 11, 0.07);
   --bg-atm: rgba(99, 102, 241, 0.18);
+  --td-strike-bg: #121929;
+  --td-atm-bg: #252e50;
+  --table-hover-bg: rgba(99, 102, 241, 0.07);
+
+  /* Table Super & Sub Headers */
+  --th-calls-bg: #111a2e;
+  --th-calls-text: #38bdf8;
+  --th-puts-bg: #111a2e;
+  --th-puts-text: #f43f5e;
+  --th-strike-bg: #1a2238;
+  --th-strike-text: var(--accent-gold);
+  --th-sub-bg: #0f1626;
+  --th-strike-col-bg: #161e33;
+
+  /* Distribution Bars */
+  --oi-bar-call-gradient: linear-gradient(90deg, transparent, #38bdf8);
+  --oi-bar-put-gradient: linear-gradient(270deg, transparent, #f43f5e);
 
   /* Borders & Dividers */
   --border-subtle: rgba(255, 255, 255, 0.07);
   --border-focus: rgba(99, 102, 241, 0.5);
   --border-atm: rgba(129, 140, 248, 0.6);
+  --card-glow-line: rgba(99, 102, 241, 0.4);
 
   /* Typography Colors */
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
   --text-inverse: #020617;
+  --brand-title-gradient: linear-gradient(to right, #ffffff, #94a3b8);
 
   /* Financial Accents */
   --bullish: #10b981;
@@ -38,9 +239,11 @@
   --accent-indigo: #6366f1;
   --accent-cyan: #06b6d4;
 
-  /* Typography */
-  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  /* Buttons & Pills */
+  --primary-gradient: linear-gradient(135deg, #4f46e5, #4338ca);
+  --primary-hover-gradient: linear-gradient(135deg, #4338ca, #2563eb);
+  --primary-shadow: rgba(79, 70, 229, 0.4);
+  --pill-hover-bg: rgba(255, 255, 255, 0.05);
 
   /* Shadows & Glassmorphism */
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -48,17 +251,36 @@
   --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
   --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.2);
   --backdrop-blur: blur(16px);
+  --scrollbar-thumb: #243048;
+  --scrollbar-thumb-hover: #334466;
+  --overlay-bg: rgba(7, 9, 14, 0.7);
+
+  /* Insights Banner */
+  --banner-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(6, 182, 212, 0.08));
+  --banner-border: rgba(99, 102, 241, 0.3);
+  --banner-icon-bg: rgba(99, 102, 241, 0.2);
+  --banner-icon-color: #a5b4fc;
+}
+
+/* ==============================================================================
+   COMMON DESIGN TOKENS
+   ============================================================================== */
+:root {
+  --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
   --radius-full: 9999px;
 
-  /* Transitions */
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Base Styles */
+/* ==============================================================================
+   BASE STYLES & RESET
+   ============================================================================== */
 * {
   margin: 0;
   padding: 0;
@@ -72,10 +294,11 @@ body {
   min-height: 100vh;
   line-height: 1.5;
   background-image: 
-    radial-gradient(circle at 15% 10%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
+    radial-gradient(circle at 15% 10%, var(--bg-gradient-1) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, var(--bg-gradient-2) 0%, transparent 45%);
   background-attachment: fixed;
   overflow-x: hidden;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
 /* Scrollbar Customization */
@@ -87,19 +310,21 @@ body {
   background: var(--bg-secondary);
 }
 ::-webkit-scrollbar-thumb {
-  background: #243048;
+  background: var(--scrollbar-thumb);
   border-radius: var(--radius-full);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334466;
+  background: var(--scrollbar-thumb-hover);
 }
 
-/* Header & Navigation Bar */
+/* ==============================================================================
+   HEADER & NAVIGATION BAR
+   ============================================================================== */
 .navbar {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(7, 9, 14, 0.85);
+  background: var(--bg-navbar);
   backdrop-filter: var(--backdrop-blur);
   border-bottom: 1px solid var(--border-subtle);
   padding: 0.75rem 1.5rem;
@@ -107,6 +332,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 1.5rem;
+  transition: background var(--transition-normal), border-color var(--transition-normal);
 }
 
 .brand {
@@ -137,7 +363,7 @@ body {
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  background: linear-gradient(to right, #ffffff, #94a3b8);
+  background: var(--brand-title-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -146,9 +372,9 @@ body {
   font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
-  background: rgba(99, 102, 241, 0.2);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: var(--banner-icon-bg);
+  color: var(--accent-indigo);
+  border: 1px solid var(--banner-border);
   padding: 0.15rem 0.45rem;
   border-radius: var(--radius-full);
   letter-spacing: 0.05em;
@@ -180,13 +406,13 @@ body {
 
 .symbol-pill:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--pill-hover-bg);
 }
 
 .symbol-pill.active {
-  background: linear-gradient(135deg, #4f46e5, #4338ca);
+  background: var(--primary-gradient);
   color: #ffffff;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+  box-shadow: 0 2px 8px var(--primary-shadow);
 }
 
 /* Custom Symbol Search */
@@ -213,7 +439,7 @@ body {
   outline: none;
   border-color: var(--border-focus);
   width: 170px;
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.25);
+  box-shadow: 0 0 10px var(--primary-shadow);
 }
 
 .symbol-search-icon {
@@ -240,36 +466,36 @@ body {
   font-weight: 600;
   padding: 0.35rem 0.75rem;
   border-radius: var(--radius-full);
-  background: rgba(16, 185, 129, 0.1);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.25);
+  background: var(--bullish-dim);
+  color: var(--bullish);
+  border: 1px solid var(--bullish-glow);
 }
 
 .market-status-badge.closed {
-  background: rgba(244, 63, 94, 0.1);
-  color: #fb7185;
-  border-color: rgba(244, 63, 94, 0.25);
+  background: var(--bearish-dim);
+  color: var(--bearish);
+  border-color: var(--bearish-glow);
 }
 
 .pulse-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 8px #10b981;
+  background: var(--bullish);
+  box-shadow: 0 0 8px var(--bullish);
   animation: pulse 2s infinite;
 }
 
 .market-status-badge.closed .pulse-dot {
-  background: #f43f5e;
-  box-shadow: 0 0 8px #f43f5e;
+  background: var(--bearish);
+  box-shadow: 0 0 8px var(--bearish);
   animation: none;
 }
 
 @keyframes pulse {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 var(--bullish-glow); }
+  70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(0, 0, 0, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 var(--bullish-glow); }
 }
 
 .btn-icon {
@@ -291,7 +517,7 @@ body {
 .btn-icon:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--border-focus);
 }
 
 .btn-icon svg {
@@ -301,19 +527,21 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #4f46e5, #3b82f6);
+  background: var(--primary-gradient);
   color: #ffffff;
   border: none;
-  box-shadow: 0 2px 10px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 2px 10px var(--primary-shadow);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #4338ca, #2563eb);
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.5);
+  background: var(--primary-hover-gradient);
+  box-shadow: 0 4px 14px var(--primary-shadow);
   transform: translateY(-1px);
 }
 
-/* Main Container */
+/* ==============================================================================
+   MAIN WORKSPACE & STAT CARDS
+   ============================================================================== */
 .container {
   max-width: 1720px;
   margin: 0 auto;
@@ -341,12 +569,13 @@ body {
   gap: 0.4rem;
   position: relative;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
   transition: var(--transition-normal);
 }
 
 .metric-card:hover {
   background: var(--bg-card-hover);
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: var(--border-focus);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
@@ -358,7 +587,7 @@ body {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.4), transparent);
+  background: linear-gradient(90deg, transparent, var(--card-glow-line), transparent);
 }
 
 .metric-header {
@@ -420,11 +649,12 @@ body {
 .ratio-bar-container {
   width: 100%;
   height: 6px;
-  background: rgba(244, 63, 94, 0.4);
+  background: var(--bearish-dim);
   border-radius: var(--radius-full);
   overflow: hidden;
   display: flex;
   margin-top: 0.3rem;
+  border: 1px solid var(--border-subtle);
 }
 
 .ratio-bar-fill {
@@ -433,7 +663,9 @@ body {
   transition: width 0.6s ease;
 }
 
-/* Controls Bar (Filter by Expiry, Strike count, etc.) */
+/* ==============================================================================
+   CONTROLS BAR & FILTERS
+   ============================================================================== */
 .controls-bar {
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
@@ -444,6 +676,7 @@ body {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .controls-left, .controls-right {
@@ -499,12 +732,18 @@ body {
   transition: var(--transition-fast);
 }
 
+.range-pill:hover {
+  color: var(--text-primary);
+}
+
 .range-pill.active {
   background: var(--accent-indigo);
   color: #ffffff;
 }
 
-/* Tabs Navigation */
+/* ==============================================================================
+   TABS NAVIGATION
+   ============================================================================== */
 .tab-nav {
   display: flex;
   align-items: center;
@@ -532,11 +771,11 @@ body {
 
 .tab-btn:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--pill-hover-bg);
 }
 
 .tab-btn.active {
-  color: #ffffff;
+  color: var(--text-primary);
   background: var(--bg-secondary);
   border-top: 1px solid var(--border-subtle);
   border-left: 1px solid var(--border-subtle);
@@ -553,7 +792,6 @@ body {
   background: var(--accent-indigo);
 }
 
-/* Tab Panels */
 .tab-content {
   display: none;
 }
@@ -561,7 +799,9 @@ body {
   display: block;
 }
 
-/* Option Chain Matrix Table Container */
+/* ==============================================================================
+   OPTION CHAIN MATRIX TABLE
+   ============================================================================== */
 .table-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
@@ -598,32 +838,32 @@ body {
 }
 
 .th-calls-super {
-  background: #111a2e;
-  color: #38bdf8;
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--th-calls-bg);
+  color: var(--th-calls-text);
+  border-right: 1px solid var(--border-subtle);
   text-align: center;
 }
 
 .th-strike-super {
-  background: #1a2238;
-  color: var(--accent-gold);
+  background: var(--th-strike-bg);
+  color: var(--th-strike-text);
   text-align: center;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
 }
 
 .th-puts-super {
-  background: #111a2e;
-  color: #f43f5e;
+  background: var(--th-puts-bg);
+  color: var(--th-puts-text);
   text-align: center;
-  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 1px solid var(--border-subtle);
 }
 
 .option-table thead tr:nth-child(2) th {
   position: sticky;
   top: 35px;
   z-index: 10;
-  background: #0f1626;
+  background: var(--th-sub-bg);
   color: var(--text-secondary);
   font-size: 0.72rem;
   font-weight: 600;
@@ -633,18 +873,18 @@ body {
 
 .th-strike {
   text-align: center;
-  background: #161e33 !important;
-  color: #e2e8f0 !important;
+  background: var(--th-strike-col-bg) !important;
+  color: var(--text-primary) !important;
 }
 
 /* Table Body Rows */
 .option-table tbody tr {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border-subtle);
   transition: background-color var(--transition-fast);
 }
 
 .option-table tbody tr:hover {
-  background-color: rgba(99, 102, 241, 0.07) !important;
+  background-color: var(--table-hover-bg) !important;
 }
 
 .option-table td {
@@ -665,20 +905,20 @@ body {
   text-align: center;
   font-weight: 700;
   font-size: 0.85rem;
-  color: #ffffff;
-  background: #121929;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  background: var(--td-strike-bg);
+  border-left: 1px solid var(--border-subtle);
+  border-right: 1px solid var(--border-subtle);
 }
 
 /* ATM Row Highlight */
 .tr-atm {
   background-color: var(--bg-atm) !important;
-  box-shadow: inset 0 0 12px rgba(99, 102, 241, 0.25);
+  box-shadow: inset 0 0 12px var(--shadow-glow);
 }
 
 .tr-atm .td-strike {
-  background: #252e50;
+  background: var(--td-atm-bg);
   color: var(--accent-gold);
   position: relative;
 }
@@ -688,7 +928,7 @@ body {
   font-size: 0.62rem;
   font-weight: 800;
   background: var(--accent-gold);
-  color: #000000;
+  color: var(--text-inverse);
   padding: 0.1rem 0.35rem;
   border-radius: var(--radius-sm);
   margin-left: 0.3rem;
@@ -704,19 +944,19 @@ body {
   position: absolute;
   top: 0;
   bottom: 0;
-  opacity: 0.22;
+  opacity: 0.35;
   pointer-events: none;
   z-index: 1;
 }
 
 .oi-bar-call {
   right: 0;
-  background: linear-gradient(90deg, transparent, #38bdf8);
+  background: var(--oi-bar-call-gradient);
 }
 
 .oi-bar-put {
   left: 0;
-  background: linear-gradient(270deg, transparent, #f43f5e);
+  background: var(--oi-bar-put-gradient);
 }
 
 .oi-val {
@@ -730,7 +970,16 @@ body {
 .text-muted   { color: var(--text-muted); }
 .text-bold    { font-weight: 600; }
 
-/* Chart Containers */
+/* Snapshots table styling */
+.snapshots-header-row th {
+  background: var(--th-sub-bg) !important;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* ==============================================================================
+   CHARTS & VISUALIZATIONS
+   ============================================================================== */
 .charts-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
@@ -770,10 +1019,12 @@ body {
   height: 340px;
 }
 
-/* Insights / Highlights Banner */
+/* ==============================================================================
+   INSIGHTS BANNER
+   ============================================================================== */
 .insights-banner {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(6, 182, 212, 0.08));
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: var(--banner-bg);
+  border: 1px solid var(--banner-border);
   border-radius: var(--radius-lg);
   padding: 1rem 1.25rem;
   display: flex;
@@ -781,6 +1032,7 @@ body {
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
+  box-shadow: var(--shadow-sm);
 }
 
 .insight-item {
@@ -792,12 +1044,13 @@ body {
 .insight-icon {
   width: 32px;
   height: 32px;
-  background: rgba(99, 102, 241, 0.2);
+  background: var(--banner-icon-bg);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #a5b4fc;
+  color: var(--banner-icon-color);
+  font-size: 1.1rem;
 }
 
 .insight-text-group h5 {
@@ -811,14 +1064,16 @@ body {
   font-size: 0.9rem;
   font-weight: 700;
   font-family: var(--font-mono);
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
-/* Loading Overlay */
+/* ==============================================================================
+   LOADING BACKDROP OVERLAY
+   ============================================================================== */
 .loading-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(7, 9, 14, 0.7);
+  background: var(--overlay-bg);
   backdrop-filter: blur(8px);
   z-index: 999;
   display: flex;
@@ -839,7 +1094,7 @@ body {
 .spinner {
   width: 48px;
   height: 48px;
-  border: 3px solid rgba(99, 102, 241, 0.2);
+  border: 3px solid var(--border-subtle);
   border-top-color: var(--accent-indigo);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -856,7 +1111,98 @@ body {
   letter-spacing: 0.05em;
 }
 
-/* Responsive Breakpoints */
+/* ==============================================================================
+   TOAST NOTIFICATIONS
+   ============================================================================== */
+.toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 440px;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  backdrop-filter: var(--backdrop-blur);
+  animation: toastSlideIn 250ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+  border: 1px solid var(--border-subtle);
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-error {
+  background: var(--bg-card);
+  border-color: var(--bearish-glow);
+  color: var(--text-primary);
+}
+
+.toast-error .toast-icon {
+  color: var(--bearish);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.toast-info {
+  background: var(--bg-card);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+.toast-info .toast-icon {
+  color: var(--accent-indigo);
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.toast-body {
+  flex: 1;
+}
+
+.toast-title {
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+
+.toast-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.1rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.toast-close:hover {
+  color: var(--text-primary);
+}
+
+/* ==============================================================================
+   RESPONSIVE BREAKPOINTS
+   ============================================================================== */
 @media (max-width: 1024px) {
   .navbar {
     flex-direction: column;

@@ -75,12 +75,17 @@ class StorageHandler:
         db_path: Optional[Path] = None,
         if_exists: str = "append",
     ) -> Path:
-        """Appends or replaces a DataFrame within a local SQLite database."""
+        """Appends or replaces a DataFrame within a local SQLite database with WAL mode and indexing."""
         target_db = db_path or self.db_path
         target_db.parent.mkdir(parents=True, exist_ok=True)
 
-        with sqlite3.connect(target_db) as conn:
+        with sqlite3.connect(target_db, timeout=15.0) as conn:
+            conn.execute("PRAGMA journal_mode=WAL;")
             df.to_sql(table_name, conn, if_exists=if_exists, index=False)
+            if table_name == "market_snapshots":
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_snapshots_sym_time ON market_snapshots(symbol, recorded_at);"
+                )
 
         logger.info("Appended %d rows to SQLite table '%s' in %s", len(df), table_name, target_db)
         return target_db
@@ -92,6 +97,7 @@ class StorageHandler:
     ):
         """Records analytical snapshot metadata in the SQLite database."""
         target_db = db_path or self.db_path
+        total_strikes = len(result.chain_df) if result.chain_df is not None else 0
         meta_df = pd.DataFrame([
             {
                 "symbol": result.symbol,
@@ -106,7 +112,7 @@ class StorageHandler:
                 "total_ce_volume": result.metrics.get("total_ce_volume"),
                 "total_pe_volume": result.metrics.get("total_pe_volume"),
                 "pcr_volume": result.metrics.get("pcr_volume"),
-                "total_strikes": len(result.chain_df),
+                "total_strikes": total_strikes,
             }
         ])
         self.save_to_sqlite(meta_df, "market_snapshots", db_path=target_db, if_exists="append")

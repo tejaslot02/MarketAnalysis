@@ -60,3 +60,35 @@ def test_session_rate_limit_error():
 
         with pytest.raises(NSERateLimitError):
             mgr.get("https://example.com/api")
+
+
+def test_session_concurrent_warmup_lock():
+    """Ensures warm_up uses the reentrant lock safely across concurrent threads."""
+    import threading
+
+    cfg = NSEConfig(request_timeout=5.0, polite_delay_min=0.001, polite_delay_max=0.002)
+    mgr = NSESessionManager(cfg=cfg, use_curl_cffi=False)
+
+    call_count = 0
+
+    def mock_create():
+        nonlocal call_count
+        call_count += 1
+        raw_sess = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        raw_sess.get.return_value = mock_resp
+        raw_sess.cookies = {"_abck": "mock_cookie"}
+        return raw_sess
+
+    with patch.object(mgr, "_create_raw_session", side_effect=mock_create):
+        # Force warm_up across 5 threads simultaneously
+        threads = [threading.Thread(target=mgr.warm_up, kwargs={"force": True}) for _ in range(5)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+    # warm_up should execute cleanly across threads without deadlocks or race conditions
+    assert call_count == 5
+    assert mgr.is_warm()

@@ -14,8 +14,12 @@ def test_symbol_sanitization():
     crawler = NSEOptionChainCrawler(session_manager=MagicMock())
     assert crawler._clean_symbol("nifty") == "NIFTY"
     assert crawler._clean_symbol("NIFTY50") == "NIFTY"
+    assert crawler._clean_symbol("NIFTY 50") == "NIFTY"
     assert crawler._clean_symbol("bank_nifty") == "BANKNIFTY"
+    assert crawler._clean_symbol("BANK NIFTY") == "BANKNIFTY"
+    assert crawler._clean_symbol("NIFTY BANK") == "BANKNIFTY"
     assert crawler._clean_symbol(" reliance ") == "RELIANCE"
+    assert crawler._clean_symbol("m&m") == "M&M"
 
 
 def test_crawler_malformed_html_handling():
@@ -49,3 +53,59 @@ def test_crawler_fetch_option_chain_success():
     assert result["_source_endpoint"] == "NextApi"
     assert len(result["data"]) == 1
     assert result["_symbol"] == "NIFTY"
+
+
+def test_crawler_fetch_option_chain_symbol_not_found():
+    """Verifies that non-F&O or missing symbols raise NSESymbolNotFoundError."""
+    from core.session import NSESymbolNotFoundError
+
+    mock_session = MagicMock(spec=NSESessionManager)
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.side_effect = [
+        {"data": []},
+        {"error": "Resource not found"},
+    ]
+    mock_session.get.return_value = mock_resp
+
+    crawler = NSEOptionChainCrawler(session_manager=mock_session)
+    with pytest.raises(NSESymbolNotFoundError):
+        crawler.fetch_option_chain("JPL", is_index=False)
+
+
+def test_crawler_quote_encoding_ampersand():
+    """Verifies that symbols with & (like M&M) are URL encoded with quote_plus (%26)."""
+    mock_session = MagicMock(spec=NSESessionManager)
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.text = '{"data": [{"strikePrice": 2800, "optionType": "CE"}]}'
+    mock_resp.json.return_value = {"data": [{"strikePrice": 2800, "optionType": "CE"}]}
+    mock_session.get.return_value = mock_resp
+
+    crawler = NSEOptionChainCrawler(session_manager=mock_session)
+    crawler.fetch_option_chain("M&M", is_index=False)
+
+    called_url = mock_session.get.call_args[0][0]
+    assert "M%26M" in called_url
+
+
+def test_crawler_fetch_equity_quote_success():
+    """Validates fetching cash equity quote for non-F&O symbol."""
+    mock_session = MagicMock(spec=NSESessionManager)
+    mock_resp = MagicMock()
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {
+        "info": {"symbol": "JPL", "companyName": "Jupiter Wagons Limited", "series": "EQ"},
+        "priceInfo": {"lastPrice": 472.5, "change": 5.2, "pChange": 1.11},
+    }
+    mock_session.get.return_value = mock_resp
+
+    crawler = NSEOptionChainCrawler(session_manager=mock_session)
+    quote = crawler.fetch_equity_quote("JPL")
+
+    assert quote["_symbol"] == "JPL"
+    assert quote["info"]["symbol"] == "JPL"
+    assert quote["info"]["companyName"] == "Jupiter Wagons Limited"
+    assert quote["info"]["series"] == "EQ"
+    assert quote["priceInfo"]["lastPrice"] == 472.5
+

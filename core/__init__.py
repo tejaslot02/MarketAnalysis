@@ -8,6 +8,7 @@ from .session import (
     NSERateLimitError,
     NSESessionExpiredError,
     NSESessionManager,
+    NSESymbolNotFoundError,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "NSESessionExpiredError",
     "NSERateLimitError",
     "NSEDataFormatError",
+    "NSESymbolNotFoundError",
 ]

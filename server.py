@@ -10,6 +10,7 @@ import sys
 import threading
 import time
 import webbrowser
+from collections import OrderedDict
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -19,7 +20,7 @@ import pandas as pd
 
 from config.settings import NSEConfig, config, setup_logging
 from core.crawler import NSEOptionChainCrawler
-from core.session import NSESessionManager
+from core.session import NSESessionManager, NSESymbolNotFoundError
 from parsers.option_chain import OptionChainParser, OptionChainResult
 from storage.handler import StorageHandler
 
@@ -53,25 +54,66 @@ def get_storage() -> StorageHandler:
     return _storage
 
 
-# In-memory LRU Cache with TTL (seconds) to prevent hammering NSE API
+# Thread-safe in-memory LRU Cache with TTL (seconds) to prevent hammering NSE API
 CACHE_TTL = 15.0
-_cache = {}
+MAX_CACHE_ENTRIES = 100
+_cache_lock = threading.Lock()
+_cache = OrderedDict()
 
 
 def get_cached_result(symbol: str, is_equity: bool) -> tuple:
-    """Retrieves cached (raw_payload, OptionChainResult) if within TTL."""
+    """Retrieves cached (raw_payload, OptionChainResult) if within TTL.
+
+    Thread-safe and updates LRU position.
+    """
     key = f"{symbol}_{is_equity}"
-    if key in _cache:
-        entry_time, raw, result = _cache[key]
-        if time.time() - entry_time < CACHE_TTL:
-            return raw, result
+    with _cache_lock:
+        if key in _cache:
+            entry_time, raw, result = _cache[key]
+            if time.time() - entry_time < CACHE_TTL:
+                _cache.move_to_end(key)
+                return raw, result
+            else:
+                _cache.pop(key, None)
     return None, None
 
 
 def set_cached_result(symbol: str, is_equity: bool, raw: dict, result: OptionChainResult):
-    """Stores result in memory with current timestamp."""
+    """Stores result in memory with current timestamp and enforces bounded LRU capacity."""
     key = f"{symbol}_{is_equity}"
-    _cache[key] = (time.time(), raw, result)
+    with _cache_lock:
+        if key in _cache:
+            _cache.move_to_end(key)
+        _cache[key] = (time.time(), raw, result)
+        while len(_cache) > MAX_CACHE_ENTRIES:
+            _cache.popitem(last=False)
+
+
+def _safe_float(val: Any, default: float = 0.0) -> float:
+    """Safely converts string/number with potential commas or formatting to float."""
+    if val is None or val == "" or val == "-":
+        return default
+    try:
+        if isinstance(val, (int, float)):
+            return float(val)
+        return float(str(val).replace(",", "").strip())
+    except (ValueError, TypeError):
+        return default
+
+
+def _safe_int(val: Any, default: int = 0) -> int:
+    """Safely converts string/number with potential commas or formatting to integer."""
+    if val is None or val == "" or val == "-":
+        return default
+    try:
+        if isinstance(val, int):
+            return val
+        if isinstance(val, float):
+            return int(val)
+        cleaned = str(val).replace(",", "").strip()
+        return int(float(cleaned))
+    except (ValueError, TypeError):
+        return default
 
 
 class OptionChainHandler(BaseHTTPRequestHandler):
@@ -160,6 +202,20 @@ class OptionChainHandler(BaseHTTPRequestHandler):
                 crawler = get_crawler()
                 raw_payload = crawler.fetch_option_chain(symbol=symbol, is_index=not is_equity)
                 result = OptionChainParser.parse(raw_payload, symbol=symbol)
+
+                # Ensure result contains contracts
+                if not result.expiry_dates and (result.chain_df is None or result.chain_df.empty):
+                    msg = (
+                        f"No active option contracts available for symbol '{symbol}' on NSE. "
+                        "Only securities actively traded in the NSE F&O segment have option chains."
+                    )
+                    logger.warning(msg)
+                    self.send_json_response(
+                        {"error": msg, "symbol": symbol, "is_fo_symbol": False},
+                        status=HTTPStatus.NOT_FOUND,
+                    )
+                    return
+
                 set_cached_result(symbol, is_equity, raw_payload, result)
                 # Persist snapshot to SQLite in background
                 try:
@@ -190,8 +246,81 @@ class OptionChainHandler(BaseHTTPRequestHandler):
 
             self.send_json_response(response_data)
 
+        except (NSESymbolNotFoundError, ValueError) as not_found_err:
+            logger.warning("No option chain data for %s: %s", symbol, not_found_err)
+            # Check if this is an active Cash Equity on NSE (e.g. JPL, non-F&O stocks)
+            if is_equity:
+                try:
+                    crawler = get_crawler()
+                    quote = crawler.fetch_equity_quote(symbol)
+                    if quote and isinstance(quote, dict):
+                        price_info = quote.get("priceInfo", {})
+                        info = quote.get("info", {})
+                        last_price = (
+                            price_info.get("lastPrice")
+                            or quote.get("underlyingValue")
+                            or 0.0
+                        )
+                        company_name = info.get("companyName") or symbol
+
+                        response_data = {
+                            "symbol": symbol,
+                            "company_name": company_name,
+                            "underlying_value": _safe_float(last_price),
+                            "timestamp": quote.get("metadata", {}).get("lastUpdateTime") or "Real-time",
+                            "expiry_dates": [],
+                            "selected_expiry": None,
+                            "is_fo_symbol": False,
+                            "equity_quote": {
+                                "company_name": company_name,
+                                "symbol": symbol,
+                                "series": (
+                                    info.get("activeSeries", ["EQ"])[0]
+                                    if isinstance(info.get("activeSeries"), list) and info.get("activeSeries")
+                                    else "EQ"
+                                ),
+                                "industry": info.get("industry", "Equity"),
+                                "last_price": _safe_float(last_price),
+                                "change": _safe_float(price_info.get("change")),
+                                "pchange": _safe_float(price_info.get("pChange")),
+                                "open": _safe_float(price_info.get("open")),
+                                "day_high": _safe_float(price_info.get("intraDayHighLow", {}).get("max")),
+                                "day_low": _safe_float(price_info.get("intraDayHighLow", {}).get("min")),
+                                "previous_close": _safe_float(price_info.get("previousClose")),
+                                "week52_high": _safe_float(price_info.get("weekHighLow", {}).get("max")),
+                                "week52_low": _safe_float(price_info.get("weekHighLow", {}).get("min")),
+                                "total_traded_volume": _safe_int(price_info.get("totalTradedVolume")),
+                            },
+                            "metrics": {
+                                "spot_price": _safe_float(last_price),
+                                "atm_strike": 0,
+                                "max_pain_strike": 0,
+                                "pcr_oi": 0.0,
+                                "pcr_volume": 0.0,
+                                "total_ce_oi": 0,
+                                "total_pe_oi": 0,
+                            },
+                            "chain": [],
+                            "cash_equity_notice": (
+                                f"'{symbol}' ({company_name}) is an active NSE Cash Equity. "
+                                "Derivative (Option & Future) contracts are only listed for ~180 eligible F&O securities on NSE."
+                            ),
+                        }
+                        self.send_json_response(response_data)
+                        return
+                except Exception as quote_err:
+                    logger.warning("Could not probe cash equity quote for %s: %s", symbol, quote_err)
+
+            self.send_json_response(
+                {
+                    "error": str(not_found_err),
+                    "symbol": symbol,
+                    "is_fo_symbol": False,
+                },
+                status=HTTPStatus.NOT_FOUND,
+            )
         except Exception as exc:
-            logger.error("Error generating option chain JSON: %s", exc, exc_info=True)
+            logger.error("Error generating option chain JSON for %s: %s", symbol, exc, exc_info=True)
             self.send_json_response({"error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def handle_api_market_status(self):
@@ -228,23 +357,61 @@ class OptionChainHandler(BaseHTTPRequestHandler):
             self.send_json_response({"error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def handle_api_export(self, params: dict):
-        """Exports data to CSV, Parquet, or JSON download stream."""
+        """Exports data to CSV, Parquet, or JSON download stream with Cash Equity support."""
         symbol = params.get("symbol", ["NIFTY"])[0].strip().upper()
         fmt = params.get("format", ["csv"])[0].lower()
         expiry = params.get("expiry", [None])[0]
+        is_equity = params.get("equity", ["false"])[0].lower() == "true"
 
         try:
-            _, result = get_cached_result(symbol, False)
+            _, result = get_cached_result(symbol, is_equity)
+            df = None
+            filename = f"{symbol}_export.{fmt}"
+
             if result is None:
                 crawler = get_crawler()
-                raw = crawler.fetch_option_chain(symbol=symbol)
-                result = OptionChainParser.parse(raw, symbol=symbol)
+                try:
+                    raw = crawler.fetch_option_chain(symbol=symbol, is_index=not is_equity)
+                    result = OptionChainParser.parse(raw, symbol=symbol)
+                except (NSESymbolNotFoundError, ValueError):
+                    # Fallback check for cash equity export
+                    quote = crawler.fetch_equity_quote(symbol) if is_equity else {}
+                    if quote and isinstance(quote, dict):
+                        price_info = quote.get("priceInfo", {})
+                        info = quote.get("info", {})
+                        df = pd.DataFrame([{
+                            "symbol": symbol,
+                            "companyName": info.get("companyName", symbol),
+                            "series": (
+                                info.get("activeSeries", ["EQ"])[0]
+                                if isinstance(info.get("activeSeries"), list) and info.get("activeSeries")
+                                else "EQ"
+                            ),
+                            "lastPrice": price_info.get("lastPrice") or quote.get("underlyingValue") or 0.0,
+                            "change": price_info.get("change", 0.0),
+                            "pChange": price_info.get("pChange", 0.0),
+                            "open": price_info.get("open", 0.0),
+                            "dayHigh": price_info.get("intraDayHighLow", {}).get("max", 0.0),
+                            "dayLow": price_info.get("intraDayHighLow", {}).get("min", 0.0),
+                            "previousClose": price_info.get("previousClose", 0.0),
+                            "week52High": price_info.get("weekHighLow", {}).get("max", 0.0),
+                            "week52Low": price_info.get("weekHighLow", {}).get("min", 0.0),
+                            "totalTradedVolume": price_info.get("totalTradedVolume", 0),
+                            "timestamp": quote.get("metadata", {}).get("lastUpdateTime", "Real-time"),
+                        }])
+                        filename = f"{symbol}_cash_equity.{fmt}"
+                    else:
+                        self.send_error(HTTPStatus.NOT_FOUND, f"No option chain or equity records found for {symbol}")
+                        return
 
-            df = result.chain_df
-            if expiry and expiry in result.expiry_dates:
-                df = df[df["expiryDate"] == expiry]
+            if result is not None:
+                df = result.chain_df if result.chain_df is not None else pd.DataFrame()
+                if expiry and expiry in result.expiry_dates and not df.empty:
+                    df = df[df["expiryDate"] == expiry]
+                filename = f"{symbol}_option_chain_{expiry or 'all'}.{fmt}"
 
-            filename = f"{symbol}_option_chain_{expiry or 'all'}.{fmt}"
+            if df is None or df.empty:
+                df = pd.DataFrame([{"symbol": symbol, "message": "No active records available for export"}])
 
             if fmt == "csv":
                 buffer = io.BytesIO(df.to_csv(index=False).encode("utf-8"))

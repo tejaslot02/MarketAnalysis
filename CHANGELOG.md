@@ -3,6 +3,73 @@
 > **MANDATE**: Every commit to this repository MUST include an entry in this changelog documenting the commit hash, date, author, affected modules, and a granular breakdown of changes.
 > Enforced locally via Git Pre-Commit Hook (`.githooks/pre-commit`) and in CI quality gates.
 
+## [Commit Pending] — 2026-11-04
+- **Commit**: `Pending`
+- **Author**: Antigravity `<assistant@antigravity.ai>`
+- **Message**: `fix(crawler, parser, server, storage, ui): comprehensive non-F&O cash equity support, URL escaping, concurrency hardening, and pastel themes`
+- **Affected Files**:
+  - [`config/settings.py`](file:///e:/Work/MarketAnalysis/config/settings.py)
+  - [`core/__init__.py`](file:///e:/Work/MarketAnalysis/core/__init__.py)
+  - [`core/crawler.py`](file:///e:/Work/MarketAnalysis/core/crawler.py)
+  - [`core/session.py`](file:///e:/Work/MarketAnalysis/core/session.py)
+  - [`parsers/option_chain.py`](file:///e:/Work/MarketAnalysis/parsers/option_chain.py)
+  - [`server.py`](file:///e:/Work/MarketAnalysis/server.py)
+  - [`storage/handler.py`](file:///e:/Work/MarketAnalysis/storage/handler.py)
+  - [`tests/test_crawler.py`](file:///e:/Work/MarketAnalysis/tests/test_crawler.py)
+  - [`tests/test_parser.py`](file:///e:/Work/MarketAnalysis/tests/test_parser.py)
+  - [`tests/test_server.py`](file:///e:/Work/MarketAnalysis/tests/test_server.py)
+  - [`tests/test_session.py`](file:///e:/Work/MarketAnalysis/tests/test_session.py)
+  - [`tests/test_storage.py`](file:///e:/Work/MarketAnalysis/tests/test_storage.py)
+  - [`ui/css/styles.css`](file:///e:/Work/MarketAnalysis/ui/css/styles.css)
+  - [`ui/index.html`](file:///e:/Work/MarketAnalysis/ui/index.html)
+  - [`ui/js/app.js`](file:///e:/Work/MarketAnalysis/ui/js/app.js)
+  - [`CHANGELOG.md`](file:///e:/Work/MarketAnalysis/CHANGELOG.md)
+- **Detailed Changes**:
+  - **Full Support for Active NSE Cash Equities (e.g., JPL / Jio Platforms Limited)**:
+    - Added `fetch_equity_quote()` in [`core/crawler.py`](file:///e:/Work/MarketAnalysis/core/crawler.py) using `https://www.nseindia.com/api/quote-equity` and NextApi `getSymbolData` fallback to fetch real-time cash quotes for any stock listed on NSE.
+    - Updated [`server.py`](file:///e:/Work/MarketAnalysis/server.py) to seamlessly detect when a searched stock is a Cash Equity (non-F&O). Instead of returning an error, it returns the live underlying spot price, company name, 52-week high/low, day range, and a contextual notice explaining that derivatives are restricted to ~180 SEBI-approved F&O stocks.
+    - Added `_safe_float()` and `_safe_int()` conversion helpers in [`server.py`](file:///e:/Work/MarketAnalysis/server.py) to parse NSE formatted numeric strings containing commas or missing fields without throwing exceptions.
+    - Added Cash Equity support to `/api/export` in [`server.py`](file:///e:/Work/MarketAnalysis/server.py), exporting summary tables when option contracts do not exist.
+    - Updated [`ui/js/app.js`](file:///e:/Work/MarketAnalysis/ui/js/app.js) to render an informative Cash Equity status card in the Option Chain table with company information, series, spot LTP, and one-click buttons to explore popular F&O stocks (`RELIANCE`, `TCS`, `INFY`, `NIFTY`).
+  - **URL Parameter Escaping & Symbol Aliasing**:
+    - Wrapped symbol query parameters in `urllib.parse.quote_plus()` across all API endpoints in [`core/crawler.py`](file:///e:/Work/MarketAnalysis/core/crawler.py), preventing HTTP request truncations on ticker symbols containing ampersands (`&`) such as `M&M`, `L&TFH`, and `M&MFIN`.
+    - Expanded symbol sanitization aliases in [`core/crawler.py`](file:///e:/Work/MarketAnalysis/core/crawler.py) to normalize `NIFTY 50`, `NIFTY BANK`, `BANK NIFTY`, `FIN NIFTY`, and `MIDCP NIFTY`.
+  - **Graceful Error Containment for Non-F&O / Invalid Symbols**:
+    - **Introduced `NSESymbolNotFoundError`** in [`core/session.py`](file:///e:/Work/MarketAnalysis/core/session.py) to distinguish non-derivative cash equities and non-existent symbols from network transport failures.
+    - **Enhanced `NSEOptionChainCrawler.fetch_option_chain()`**:
+      - Detected when NextApi returns an empty `data: []` payload (typical for non-F&O cash equities).
+      - Validated fallback responses from `option-chain-equities` to prevent forwarding error dictionaries (`{"error": "Resource not found"}`) as valid chains.
+      - Raised `NSESymbolNotFoundError` when no contracts exist.
+    - **Hardened `OptionChainParser.parse()`**:
+      - Provided clear error diagnostics identifying the symbol and explaining NSE F&O listing requirements instead of throwing a generic `ValueError`.
+      - Added zero Open Interest guard in `OptionChainParser.calculate_max_pain()` returning `None` if total OI across strikes is zero.
+    - **Frontend Resilience & Non-Blocking Feedback (`ui/js/app.js`, `ui/index.html`, `ui/css/styles.css`)**:
+      - Replaced intrusive blocking `alert()` calls with modern, non-blocking toast notifications.
+      - Tracked `previousValidSymbol` and automatically reverted state upon lookup failure, preventing auto-refresh timers from spamming failed API queries in an infinite loop.
+      - Synchronized symbol selector pills and search inputs back to the active valid symbol.
+      - Replaced `setInterval` naive timer in `startAutoRefresh()` with wall-clock drift-resistant `Date.now()` logic and visibility change listener.
+      - Enabled `spanGaps: true` on IV smile chart to smoothly render illiquid strike series.
+      - Updated offline/error status badge in `checkMarketStatus()` when NSE is unreachable.
+  - **Thread-Safety & Concurrency Hardening**:
+    - Added `threading.RLock()` to [`core/session.py`](file:///e:/Work/MarketAnalysis/core/session.py) around `warm_up()` and `is_warm()` to serialize perimeter cookie harvesting and prevent socket drops when concurrent requests arrive simultaneously.
+    - Replaced dict cache in [`server.py`](file:///e:/Work/MarketAnalysis/server.py) with a thread-safe `OrderedDict` LRU cache (`MAX_CACHE_ENTRIES = 100`) protected by `threading.Lock()`.
+    - Added SQLite connection busy timeout (`timeout=15.0`), enabled Write-Ahead Logging (`PRAGMA journal_mode=WAL;`), and indexed `market_snapshots(symbol, recorded_at)` in [`storage/handler.py`](file:///e:/Work/MarketAnalysis/storage/handler.py) to avoid `database is locked` errors during background writes.
+  - **Pastel Color Design System (`ui/css/styles.css`)**:
+    - Introduced **Pastel Day** (default light theme) with porcelain/lavender canvas (`#f6f8fd`), crisp cards (`#ffffff`), soft pastel mint calls (`#059669`, `#7dd3fc`), blush/coral puts (`#e11d48`, `#fda4af`), amber accents (`#d97706`), and high-readability slate typography (`#1e293b`).
+    - Introduced **Pastel Dusk** (soft dark theme) with twilight slate canvas (`#151722`), soft velvet card containers (`#1c1f2e`), and soothing pastel glow accents.
+    - Retained **Classic Dark** (deep Obsidian `#07090e`) for legacy dark-mode preference.
+    - Replaced all hardcoded table header, ITM/ATM shading, and distribution bar colors with modular CSS custom properties.
+  - **Dynamic Theme Switcher (`ui/index.html`, `ui/js/app.js`)**:
+    - Added an intuitive theme selector dropdown in the navigation header (`🌸 Pastel Day`, `🌙 Pastel Dusk`, `🌑 Classic Dark`).
+    - Stored selected theme in `localStorage` (`market_terminal_theme`) to persist user preference across page reloads.
+  - **Adaptive Chart.js Visualizations (`ui/js/app.js`)**:
+    - Implemented `getThemeColors()` to dynamically update strike-wise Open Interest bars, Intraday Change in OI bars, Max Pain settlement curve, IV Smile splines, gridlines, and tooltip styles to match the active pastel palette.
+    - Added instant chart re-render whenever the user switches themes.
+  - **Test Suite Expansion (`tests/`)**:
+    - Expanded test coverage across all components with 21 automated unit tests verifying cash equity fallback, quote fetching, URL encoding of ampersands, parser zero-OI safety, session warmup concurrency locking, and SQLite WAL indexing.
+
+---
+
 ## [Commit 3909d36] — 2026-10-30
 - **Commit**: `3909d36`
 - **Author**: Tejas `<tejaslot02@gmail.com>`
