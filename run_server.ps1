@@ -1,11 +1,14 @@
 [CmdletBinding()]
 param (
     [int]$Port = 8080,
+    [string]$HostAddress = "127.0.0.1",
+    [ValidateSet("sample", "nse")]
+    [string]$Provider = "sample",
     [switch]$NoBrowser
 )
 
 Write-Host "==============================================================================" -ForegroundColor Cyan
-Write-Host "  NSE India Option Chain and Quantitative Analytics Terminal" -ForegroundColor Cyan
+Write-Host "  NSE India Option Chain & Options Strategy Intelligence Terminal" -ForegroundColor Cyan
 Write-Host "==============================================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -25,12 +28,15 @@ if (Test-Path ".venv\Scripts\Activate.ps1") {
     & venv\Scripts\Activate.ps1
 }
 
-Write-Host "[*] Starting Web UI Server on http://127.0.0.1:$Port/..." -ForegroundColor Green
-Write-Host "[*] Browser will open automatically once the server is ready..." -ForegroundColor Green
+Write-Host "[*] Starting Web UI Server on http://${HostAddress}:$Port/ [Provider: $Provider]..." -ForegroundColor Green
+if (-not $NoBrowser) {
+    Write-Host "[*] Browser will open automatically once the server is ready..." -ForegroundColor Green
+}
 Write-Host ""
 
-if ($NoBrowser) {
-    python server.py --port $Port
-} else {
-    python server.py --port $Port --open
+$argsList = @("--port", $Port, "--host", $HostAddress, "--provider", $Provider)
+if (-not $NoBrowser) {
+    $argsList += "--open"
 }
+
+python server.py @argsList

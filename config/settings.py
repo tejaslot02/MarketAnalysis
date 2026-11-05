@@ -77,6 +77,11 @@ class NSEConfig:
     polite_delay_max: float = float(os.getenv("NSE_POLITE_DELAY_MAX", "1.5"))
     session_ttl_seconds: int = int(os.getenv("NSE_SESSION_TTL_SECONDS", "300"))
 
+    # Options Intelligence & Data Layer Provider Settings
+    active_data_provider: str = os.getenv("OPTIONS_DATA_PROVIDER", "sample").lower()
+    risk_free_rate: float = float(os.getenv("OPTIONS_RISK_FREE_RATE", "0.065"))
+    dividend_yield: float = float(os.getenv("OPTIONS_DIVIDEND_YIELD", "0.012"))
+
     # Storage Paths
     base_data_dir: Path = Path(os.getenv("NSE_DATA_DIR", "data"))
     default_db_path: Path = Path(os.getenv("NSE_DB_PATH", "data/market_analysis.db"))
@@ -89,6 +94,7 @@ class NSEConfig:
 
 # Global singleton instance
 config = NSEConfig()
+settings = config
 
 
 def setup_logging(level: int = logging.INFO, log_file: Optional[Path] = None) -> logging.Logger:

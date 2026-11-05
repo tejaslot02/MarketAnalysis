@@ -72,6 +72,16 @@
     </div>
   </header>
 
+  <!-- Top Level Section Switcher -->
+  <nav class="section-nav" id="section-nav" aria-label="Terminal Modules">
+    <button class="section-nav-btn active" data-section="view-terminal" id="sec-btn-terminal">
+      <span>📊</span> Option Chain Terminal
+    </button>
+    <button class="section-nav-btn" data-section="view-intelligence" id="sec-btn-intelligence">
+      <span>⚡</span> Options Strategy Intelligence
+    </button>
+  </nav>
+
   <!-- Main Workspace -->
   <main class="container">
 
@@ -79,6 +89,9 @@
     <h1 style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;">
       NSE India Live Option Chain Quantitative Analysis Terminal
     </h1>
+
+    <!-- VIEW 1: Existing Option Chain Terminal View -->
+    <div id="view-terminal" class="view-panel active">
 
     <!-- Executive Stat Cards (Key Analytical Indicators) -->
     <section class="metrics-grid" aria-label="Key Market Metrics">
@@ -361,7 +374,175 @@
       </div>
     </section>
 
+    </div><!-- End #view-terminal -->
+
+    <!-- VIEW 2: Options Strategy Intelligence Portal -->
+    <div id="view-intelligence" class="view-panel" style="display: none;">
+
+      <!-- Data Provenance & Compliance Banner -->
+      <div class="data-mode-banner" style="background:var(--bg-tertiary); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:0.65rem 1rem; margin-bottom:1.25rem; display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-size:0.83rem; color:var(--text-secondary);">
+          ⚡ <strong>Data Mode: SAMPLE</strong> (Deterministic Black-Scholes Engine) &bull; Informational Analytics Only
+        </div>
+        <span class="badge badge-neutral">SAMPLE FEED</span>
+      </div>
+
+      <!-- Intelligence Sub-Nav Tabs -->
+      <nav class="tab-nav" aria-label="Intelligence Views">
+        <button class="tab-btn active" data-inteltab="intel-overview" id="intel-tab-overview-btn">
+          <span>📊</span> Market Overview
+        </button>
+        <button class="tab-btn" data-inteltab="intel-scanner" id="intel-tab-scanner-btn">
+          <span>⚡</span> Strategy Scanner
+        </button>
+        <button class="tab-btn" data-inteltab="intel-simulator" id="intel-tab-simulator-btn">
+          <span>📈</span> Payoff Simulator
+        </button>
+        <button class="tab-btn" data-inteltab="intel-backtest" id="intel-tab-backtest-btn">
+          <span>📜</span> Historical Backtesting
+        </button>
+        <button class="tab-btn" data-inteltab="intel-alerts" id="intel-tab-alerts-btn">
+          <span>🔔</span> Alerts & Rules
+        </button>
+      </nav>
+
+      <!-- SUBTAB 1: Market Overview -->
+      <section id="intel-overview" class="intel-tab-content active" aria-label="Market Overview">
+        <div id="intel-overview-content">
+          <div style="text-align:center; padding: 2rem; color: var(--text-muted);">Loading market regime and indicator summary...</div>
+        </div>
+      </section>
+
+      <!-- SUBTAB 2: Strategy Scanner -->
+      <section id="intel-scanner" class="intel-tab-content" style="display:none;" aria-label="Strategy Scanner">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+          <div class="range-pill-group" id="scanner-cat-pills">
+            <button class="range-pill cat-pill active" data-category="ALL" onclick="StrategyScannerModule.setCategory('ALL')">All (16)</button>
+            <button class="range-pill cat-pill" data-category="BULLISH" onclick="StrategyScannerModule.setCategory('BULLISH')">Bullish</button>
+            <button class="range-pill cat-pill" data-category="BEARISH" onclick="StrategyScannerModule.setCategory('BEARISH')">Bearish</button>
+            <button class="range-pill cat-pill" data-category="NEUTRAL" onclick="StrategyScannerModule.setCategory('NEUTRAL')">Neutral</button>
+            <button class="range-pill cat-pill" data-category="VOLATILITY" onclick="StrategyScannerModule.setCategory('VOLATILITY')">Volatility</button>
+          </div>
+          <span style="font-size:0.78rem; color:var(--text-muted);">Explainable rule scoring &bull; Risk adjusted</span>
+        </div>
+
+        <div class="strategy-cards-grid" id="strategy-cards-grid">
+          <div style="text-align:center; padding: 2rem; color: var(--text-muted);">Evaluating strategies...</div>
+        </div>
+      </section>
+
+      <!-- SUBTAB 3: Payoff Simulator -->
+      <section id="intel-simulator" class="intel-tab-content" style="display:none;" aria-label="Payoff Simulator">
+        <!-- Live Summary Metrics Bar -->
+        <div class="strategy-stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); margin-bottom:1.25rem;">
+          <div>
+            <span class="stat-lbl">Net Position</span>
+            <span class="stat-val" id="sim-val-debit-credit">--</span>
+          </div>
+          <div>
+            <span class="stat-lbl">Max Profit</span>
+            <span class="stat-val text-bullish" id="sim-val-max-profit">--</span>
+          </div>
+          <div>
+            <span class="stat-lbl">Max Loss / Risk</span>
+            <span class="stat-val text-bearish" id="sim-val-max-loss">--</span>
+          </div>
+          <div>
+            <span class="stat-lbl">Breakevens</span>
+            <span class="stat-val font-mono" id="sim-val-breakevens" style="font-size:0.85rem;">--</span>
+          </div>
+          <div>
+            <span class="stat-lbl">Est. Margin</span>
+            <span class="stat-val" id="sim-val-margin">--</span>
+          </div>
+          <div>
+            <span class="stat-lbl">Total Friction</span>
+            <span class="stat-val text-bearish" id="sim-val-friction">--</span>
+          </div>
+          <div>
+            <span class="stat-lbl">Delta / Theta</span>
+            <span class="stat-val font-mono"><span id="sim-greek-delta">--</span> / <span id="sim-greek-theta">--</span></span>
+          </div>
+        </div>
+
+        <!-- Strategy Leg Builder Table -->
+        <div class="table-card" style="margin-bottom: 1.5rem;">
+          <div style="padding:0.75rem 1.25rem; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+            <h4 style="margin:0; font-size:0.95rem; font-weight:700;">Strategy Legs Builder</h4>
+            <div style="display:flex; gap:0.4rem;">
+              <button class="btn-sm btn-primary" onclick="PayoffSimulatorModule.addLeg()">+ Add Leg</button>
+              <button class="btn-sm btn-outline" onclick="PayoffSimulatorModule.recalculate()">🔄 Recalculate</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="option-table">
+              <thead>
+                <tr>
+                  <th style="text-align:left;">Action</th>
+                  <th>Type</th>
+                  <th>Strike Price</th>
+                  <th>Quantity</th>
+                  <th>Entry Premium</th>
+                  <th>IV (%)</th>
+                  <th style="text-align:center;">Remove</th>
+                </tr>
+              </thead>
+              <tbody id="simulator-legs-tbody">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Payoff Chart Canvas -->
+        <article class="chart-card" style="margin-bottom: 1.5rem;">
+          <div class="chart-header">
+            <h3 class="chart-title"><span>📈</span> Dynamic Strategy Expiry Payoff Curve (INR)</h3>
+          </div>
+          <div class="chart-canvas-wrapper" style="height: 380px;">
+            <canvas id="chart-payoff"></canvas>
+          </div>
+        </article>
+
+        <!-- Multi-Variable Scenario Heatmap -->
+        <article class="chart-card">
+          <div class="chart-header">
+            <h3 class="chart-title"><span>🔄</span> Pre-Expiry Multi-Variable Scenario Analysis Matrix</h3>
+          </div>
+          <p style="font-size:0.83rem; color:var(--text-secondary); margin-bottom:0.75rem;">
+            Simulated strategy PnL under shifts in Underlying Spot Price vs. Implied Volatility (T+5 days).
+          </p>
+          <div id="simulator-scenario-container">
+          </div>
+        </article>
+      </section>
+
+      <!-- SUBTAB 4: Historical Backtesting -->
+      <section id="intel-backtest" class="intel-tab-content" style="display:none;" aria-label="Historical Backtesting">
+        <div id="intel-backtest-content">
+        </div>
+      </section>
+
+      <!-- SUBTAB 5: Alerts & Triggers -->
+      <section id="intel-alerts" class="intel-tab-content" style="display:none;" aria-label="Alerts and Rules">
+        <div id="intel-alerts-content">
+        </div>
+      </section>
+
+    </div><!-- End #view-intelligence -->
+
   </main>
+
+  <!-- Rule Inspection Modal Dialog -->
+  <div class="modal-backdrop" id="rule-inspect-modal" role="dialog" aria-modal="true">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h4 class="modal-title" id="modal-strategy-title">Strategy Evaluation Rules</h4>
+        <button class="modal-close-btn" onclick="document.getElementById('rule-inspect-modal').classList.remove('active')">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-strategy-body">
+      </div>
+    </div>
+  </div>
 
   <!-- Loading Backdrop Overlay -->
   <div class="loading-overlay" id="loading-overlay" aria-hidden="true">
@@ -372,6 +553,12 @@
   <!-- Notification Toast Container -->
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
+  <!-- JavaScript Modules -->
+  <script src="/ui/js/modules/market_overview.js"></script>
+  <script src="/ui/js/modules/strategy_scanner.js"></script>
+  <script src="/ui/js/modules/payoff_simulator.js"></script>
+  <script src="/ui/js/modules/backtesting.js"></script>
+  <script src="/ui/js/modules/alerts_ui.js"></script>
   <script src="/ui/js/app.js"></script>
 </body>
 </html>

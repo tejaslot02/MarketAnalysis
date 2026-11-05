@@ -86,15 +86,69 @@ function initEventListeners() {
     renderMatrix();
   });
 
-  // Tabs Navigation
-  document.querySelectorAll('.tab-btn').forEach((btn) => {
+  // Top-Level Section Switcher (Option Chain Terminal vs Options Intelligence)
+  document.querySelectorAll('.section-nav-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach((c) => c.classList.remove('active'));
+      document.querySelectorAll('.section-nav-btn').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.view-panel').forEach((p) => {
+        p.classList.remove('active');
+        p.style.display = 'none';
+      });
+      btn.classList.add('active');
+      const sectionId = btn.dataset.section;
+      const targetPanel = document.getElementById(sectionId);
+      if (targetPanel) {
+        targetPanel.classList.add('active');
+        targetPanel.style.display = 'block';
+      }
+
+      if (sectionId === 'view-intelligence') {
+        if (window.MarketOverviewModule) window.MarketOverviewModule.load(state.symbol);
+        if (window.StrategyScannerModule) window.StrategyScannerModule.load(state.symbol);
+      }
+    });
+  });
+
+  // Intelligence Sub-Tabs Navigation
+  document.querySelectorAll('[data-inteltab]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-inteltab]').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.intel-tab-content').forEach((c) => {
+        c.classList.remove('active');
+        c.style.display = 'none';
+      });
+      btn.classList.add('active');
+      const tabId = btn.dataset.inteltab;
+      const targetTab = document.getElementById(tabId);
+      if (targetTab) {
+        targetTab.classList.add('active');
+        targetTab.style.display = 'block';
+      }
+
+      if (tabId === 'intel-overview' && window.MarketOverviewModule) {
+        window.MarketOverviewModule.load(state.symbol);
+      } else if (tabId === 'intel-scanner' && window.StrategyScannerModule) {
+        window.StrategyScannerModule.load(state.symbol);
+      } else if (tabId === 'intel-simulator' && window.PayoffSimulatorModule) {
+        window.PayoffSimulatorModule.init();
+      } else if (tabId === 'intel-backtest' && window.BacktestingModule) {
+        window.BacktestingModule.init();
+      } else if (tabId === 'intel-alerts' && window.AlertsModule) {
+        window.AlertsModule.init();
+      }
+    });
+  });
+
+  // Option Chain Terminal Tabs Navigation
+  document.querySelectorAll('#view-terminal .tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#view-terminal .tab-btn').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('#view-terminal .tab-content').forEach((c) => c.classList.remove('active'));
       btn.classList.add('active');
       const tabId = btn.dataset.tab;
       state.activeTab = tabId;
-      document.getElementById(tabId).classList.add('active');
+      const targetTab = document.getElementById(tabId);
+      if (targetTab) targetTab.classList.add('active');
 
       if (tabId === 'charts' || tabId === 'maxpain' || tabId === 'ivsmile') {
         renderCharts();
@@ -210,6 +264,13 @@ async function loadData(silent = false) {
     populateExpiries(json.expiry_dates, json.selected_expiry);
     renderMatrix();
     renderCharts();
+
+    // Synchronize Options Intelligence views if active
+    const intelPanel = document.getElementById('view-intelligence');
+    if (intelPanel && intelPanel.style.display !== 'none') {
+      if (window.MarketOverviewModule) window.MarketOverviewModule.load(requestedSymbol);
+      if (window.StrategyScannerModule) window.StrategyScannerModule.load(requestedSymbol);
+    }
   } catch (err) {
     console.warn(`Failed to load option chain for ${requestedSymbol}:`, err.message);
 
@@ -759,6 +820,7 @@ function getThemeColors() {
     };
   }
 }
+window.getThemeColors = getThemeColors;
 
 /**
  * Chart 1: Open Interest Grouped Bars

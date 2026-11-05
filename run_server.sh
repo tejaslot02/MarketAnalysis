@@ -2,7 +2,7 @@
 set -e
 
 echo "=============================================================================="
-echo "  NSE India Option Chain & Quantitative Analytics Terminal"
+echo "  NSE India Option Chain & Options Strategy Intelligence Terminal"
 echo "=============================================================================="
 
 # Activate virtualenv if present
@@ -14,15 +14,19 @@ elif [ -d "venv" ]; then
     source venv/bin/activate
 fi
 
-PORT="${1:-8080}"
-
-echo "[*] Starting Web UI Server on http://127.0.0.1:${PORT}/"
-
-# Auto-open browser if available
-if command -v xdg-open > /dev/null 2>&1; then
-    (sleep 1.5 && xdg-open "http://127.0.0.1:${PORT}/") &
-elif command -v open > /dev/null 2>&1; then
-    (sleep 1.5 && open "http://127.0.0.1:${PORT}/") &
+# Argument parsing and dispatch
+if [ $# -eq 0 ]; then
+    PORT=8080
+    echo "[*] Starting Web UI Server on http://127.0.0.1:${PORT}/ [Default Sample Mode]"
+    echo "[*] Browser will launch automatically..."
+    python3 server.py --port "${PORT}" --open
+elif [[ "$1" =~ ^[0-9]+$ ]]; then
+    PORT="$1"
+    shift
+    echo "[*] Starting Web UI Server on http://127.0.0.1:${PORT}/"
+    echo "[*] Browser will launch automatically..."
+    python3 server.py --port "${PORT}" --open "$@"
+else
+    echo "[*] Starting Web UI Server with custom arguments: $*"
+    python3 server.py "$@"
 fi
-
-python3 server.py --port "${PORT}"

@@ -13,7 +13,15 @@
   - [`core/crawler.py`](file:///e:/Work/MarketAnalysis/core/crawler.py)
   - [`core/session.py`](file:///e:/Work/MarketAnalysis/core/session.py)
   - [`parsers/option_chain.py`](file:///e:/Work/MarketAnalysis/parsers/option_chain.py)
+  - [`pyproject.toml`](file:///e:/Work/MarketAnalysis/pyproject.toml)
+  - [`run_server.bat`](file:///e:/Work/MarketAnalysis/run_server.bat)
+  - [`run_server.ps1`](file:///e:/Work/MarketAnalysis/run_server.ps1)
+  - [`run_server.sh`](file:///e:/Work/MarketAnalysis/run_server.sh)
   - [`server.py`](file:///e:/Work/MarketAnalysis/server.py)
+  - [`pyproject.toml`](file:///e:/Work/MarketAnalysis/pyproject.toml)
+  - [`run_server.bat`](file:///e:/Work/MarketAnalysis/run_server.bat)
+  - [`run_server.ps1`](file:///e:/Work/MarketAnalysis/run_server.ps1)
+  - [`run_server.sh`](file:///e:/Work/MarketAnalysis/run_server.sh)
   - [`storage/handler.py`](file:///e:/Work/MarketAnalysis/storage/handler.py)
   - [`tests/test_crawler.py`](file:///e:/Work/MarketAnalysis/tests/test_crawler.py)
   - [`tests/test_parser.py`](file:///e:/Work/MarketAnalysis/tests/test_parser.py)
@@ -25,6 +33,12 @@
   - [`ui/js/app.js`](file:///e:/Work/MarketAnalysis/ui/js/app.js)
   - [`CHANGELOG.md`](file:///e:/Work/MarketAnalysis/CHANGELOG.md)
 - **Detailed Changes**:
+    - **Startup Launchers Modernization (`run_server.bat`, `run_server.sh`, `run_server.ps1`, `server.py`)**:
+      - Updated application branding to *Options Strategy Intelligence & Analytics Terminal*.
+      - Added `--provider <sample|nse>` and `--no-browser` flags in `server.py` argument parser for seamless CLI mode selection.
+      - Upgraded `run_server.bat` and `run_server.sh` to forward positional ports or arbitrary CLI arguments (`%*`, `"$@"`) directly to the Python runtime.
+      - Updated `run_server.ps1` with PowerShell parameter binding (`-Port`, `-HostAddress`, `-Provider`, `-NoBrowser`).
+      - Updated `pyproject.toml` setuptools package discovery to include `analytics*`, `api*`, `risk*`, and `strategies*`.
   - **Full Support for Active NSE Cash Equities (e.g., JPL / Jio Platforms Limited)**:
     - Added `fetch_equity_quote()` in [`core/crawler.py`](file:///e:/Work/MarketAnalysis/core/crawler.py) using `https://www.nseindia.com/api/quote-equity` and NextApi `getSymbolData` fallback to fetch real-time cash quotes for any stock listed on NSE.
     - Updated [`server.py`](file:///e:/Work/MarketAnalysis/server.py) to seamlessly detect when a searched stock is a Cash Equity (non-F&O). Instead of returning an error, it returns the live underlying spot price, company name, 52-week high/low, day range, and a contextual notice explaining that derivatives are restricted to ~180 SEBI-approved F&O stocks.
@@ -75,6 +89,10 @@
 - **Author**: Tejas `<tejaslot02@gmail.com>`
 - **Message**: `fix(server): eliminate empty responses, optimize session reuse, and fix launcher race condition`
 - **Affected Files**:
+  - [`pyproject.toml`](file:///e:/Work/MarketAnalysis/pyproject.toml)
+  - [`run_server.bat`](file:///e:/Work/MarketAnalysis/run_server.bat)
+  - [`run_server.ps1`](file:///e:/Work/MarketAnalysis/run_server.ps1)
+  - [`run_server.sh`](file:///e:/Work/MarketAnalysis/run_server.sh)
   - [`server.py`](file:///e:/Work/MarketAnalysis/server.py)
   - [`run_server.bat`](file:///e:/Work/MarketAnalysis/run_server.bat)
   - [`run_server.ps1`](file:///e:/Work/MarketAnalysis/run_server.ps1)
@@ -134,6 +152,10 @@
   - [`ui/index.html`](file:///e:/Work/MarketAnalysis/ui/index.html)
   - [`ui/css/styles.css`](file:///e:/Work/MarketAnalysis/ui/css/styles.css)
   - [`ui/js/app.js`](file:///e:/Work/MarketAnalysis/ui/js/app.js)
+  - [`pyproject.toml`](file:///e:/Work/MarketAnalysis/pyproject.toml)
+  - [`run_server.bat`](file:///e:/Work/MarketAnalysis/run_server.bat)
+  - [`run_server.ps1`](file:///e:/Work/MarketAnalysis/run_server.ps1)
+  - [`run_server.sh`](file:///e:/Work/MarketAnalysis/run_server.sh)
   - [`server.py`](file:///e:/Work/MarketAnalysis/server.py)
   - [`main.py`](file:///e:/Work/MarketAnalysis/main.py)
   - [`Makefile`](file:///e:/Work/MarketAnalysis/Makefile)

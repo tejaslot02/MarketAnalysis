@@ -21,7 +21,7 @@ classifiers = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["config*", "core*", "parsers*", "storage*"]
+include = ["config*", "core*", "parsers*", "storage*", "analytics*", "api*", "risk*", "strategies*"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"

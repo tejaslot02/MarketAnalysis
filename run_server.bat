@@ -1,10 +1,10 @@
 @echo off
 setlocal
 
-title NSE Option Analytics Terminal Server
+title NSE Options Strategy Intelligence & Analytics Terminal
 
 echo ==============================================================================
-echo   NSE India Option Chain and Quantitative Analytics Terminal
+echo   NSE India Option Chain & Options Strategy Intelligence Terminal
 echo ==============================================================================
 echo.
 
@@ -26,18 +26,32 @@ if exist ".venv\Scripts\activate.bat" (
     call venv\Scripts\activate.bat
 )
 
-rem Port configuration (default: 8080 or pass as first argument)
-set "PORT=8080"
-if not "%~1"=="" set "PORT=%~1"
-
-echo [*] Starting Web UI Server on http://127.0.0.1:%PORT%/
-echo [*] Browser will open automatically once the server is ready...
-echo.
-
-python server.py --port %PORT% --open
+rem Port and argument handling
+if "%~1"=="" (
+    set "PORT=8080"
+    echo [*] Starting Web UI Server on http://127.0.0.1:8080/ [Default Sample Mode]
+    echo [*] Browser will open automatically once the server is ready...
+    echo.
+    python server.py --port 8080 --open
+) else (
+    rem Check if first argument is a flag (starts with --)
+    set "FIRST_ARG=%~1"
+    if "%FIRST_ARG:~0,2%"=="--" (
+        echo [*] Starting Web UI Server with custom arguments: %*
+        echo.
+        python server.py %*
+    ) else (
+        set "PORT=%~1"
+        shift
+        echo [*] Starting Web UI Server on http://127.0.0.1:%PORT%/
+        echo [*] Browser will open automatically once the server is ready...
+        echo.
+        python server.py --port %PORT% --open %1 %2 %3 %4 %5
+    )
+)
 
 if %ERRORLEVEL% neq 0 (
     echo.
-    echo [!] Server exited unexpectedly with code %ERRORLEVEL%.
+    echo [!] Server exited with status code %ERRORLEVEL%.
     pause
 )

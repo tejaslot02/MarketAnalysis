@@ -33,6 +33,64 @@ class StorageHandler:
         (self.base_dir / "csv").mkdir(parents=True, exist_ok=True)
         (self.base_dir / "parquet").mkdir(parents=True, exist_ok=True)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.init_intelligence_tables()
+
+    def init_intelligence_tables(self, db_path: Optional[Path] = None):
+        """Initializes relational tables and performance indexes for Options Strategy Intelligence."""
+        target_db = db_path or self.db_path
+        with sqlite3.connect(target_db, timeout=15.0) as conn:
+            conn.execute("PRAGMA journal_mode=WAL;")
+            cursor = conn.cursor()
+
+            # 1. Underlying Asset Master
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS underlying_master (
+                    symbol TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    asset_type TEXT NOT NULL,
+                    lot_size INTEGER NOT NULL,
+                    tick_size REAL DEFAULT 0.05,
+                    strike_step REAL NOT NULL,
+                    is_active INTEGER DEFAULT 1,
+                    created_at TEXT NOT NULL
+                );
+            """)
+
+            # 2. Derivative Contract Master
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS contract_master (
+                    contract_id TEXT PRIMARY KEY,
+                    symbol TEXT NOT NULL,
+                    expiry_date TEXT NOT NULL,
+                    strike_price REAL NOT NULL,
+                    option_type TEXT NOT NULL,
+                    lot_size INTEGER NOT NULL,
+                    is_active INTEGER DEFAULT 1,
+                    FOREIGN KEY(symbol) REFERENCES underlying_master(symbol)
+                );
+            """)
+
+            # 3. Normalized Option Chain Snapshots with Data Mode
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS option_chain_snapshots (
+                    snapshot_id TEXT PRIMARY KEY,
+                    symbol TEXT NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    recorded_at TEXT NOT NULL,
+                    underlying_value REAL NOT NULL,
+                    data_mode TEXT NOT NULL,
+                    data_source TEXT NOT NULL,
+                    data_quality_status TEXT NOT NULL,
+                    raw_payload_ref TEXT
+                );
+            """)
+
+            # Indexes
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_snapshots_sym_mode 
+                ON option_chain_snapshots(symbol, data_mode, recorded_at);
+            """)
+            conn.commit()
 
     def save_raw_json(self, data: Dict[str, Any], filename: str) -> Path:
         """Saves raw JSON dictionary to the raw data archive."""
@@ -116,6 +174,35 @@ class StorageHandler:
             }
         ])
         self.save_to_sqlite(meta_df, "market_snapshots", db_path=target_db, if_exists="append")
+
+    def save_normalized_snapshot(
+        self,
+        snapshot_id: str,
+        symbol: str,
+        timestamp: str,
+        underlying_value: float,
+        data_mode: str,
+        data_source: str,
+        data_quality_status: str,
+        raw_payload_ref: Optional[str] = None,
+        db_path: Optional[Path] = None,
+    ) -> Path:
+        """Stores normalized snapshot record tagged with data_mode."""
+        target_db = db_path or self.db_path
+        snap_df = pd.DataFrame([
+            {
+                "snapshot_id": snapshot_id,
+                "symbol": symbol,
+                "timestamp": timestamp,
+                "recorded_at": datetime.now().isoformat(),
+                "underlying_value": underlying_value,
+                "data_mode": data_mode,
+                "data_source": data_source,
+                "data_quality_status": data_quality_status,
+                "raw_payload_ref": raw_payload_ref or "",
+            }
+        ])
+        return self.save_to_sqlite(snap_df, "option_chain_snapshots", db_path=target_db, if_exists="append")
 
     def save_all(
         self,

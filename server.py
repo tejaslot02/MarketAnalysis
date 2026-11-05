@@ -23,6 +23,7 @@ from core.crawler import NSEOptionChainCrawler
 from core.session import NSESessionManager, NSESymbolNotFoundError
 from parsers.option_chain import OptionChainParser, OptionChainResult
 from storage.handler import StorageHandler
+from api.router import OptionsApiRouter
 
 # Line buffering on Windows console
 if hasattr(sys.stdout, "reconfigure"):
@@ -126,10 +127,33 @@ class OptionChainHandler(BaseHTTPRequestHandler):
         """Handles CORS preflight requests."""
         self.send_response(HTTPStatus.NO_CONTENT)
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.send_header("Content-Length", "0")
         self.end_headers()
+
+    def do_POST(self):
+        """Routes incoming POST requests (e.g. strategy payoff simulations)."""
+        try:
+            parsed = urlparse(self.path)
+            content_length = int(self.headers.get("Content-Length", 0))
+            body_bytes = self.rfile.read(content_length) if content_length > 0 else b"{}"
+            try:
+                body_data = json.loads(body_bytes.decode("utf-8")) if body_bytes else {}
+            except Exception:
+                body_data = {}
+
+            if parsed.path.startswith("/api/options/"):
+                OptionsApiRouter.handle_post(self, parsed.path, body_data)
+                return
+
+            self.send_error(HTTPStatus.NOT_FOUND, f"POST route '{parsed.path}' not found")
+        except Exception as exc:
+            logger.error("Unhandled error processing POST request %s: %s", self.path, exc, exc_info=True)
+            try:
+                self.send_json_response({"error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+            except Exception:  # pragma: no cover
+                pass
 
     def do_GET(self):
         """Routes GET requests safely with complete exception containment."""
@@ -139,13 +163,18 @@ class OptionChainHandler(BaseHTTPRequestHandler):
             logger.error("Unhandled error processing request %s: %s", self.path, exc, exc_info=True)
             try:
                 self.send_json_response({"error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
-            except Exception:
+            except Exception:  # pragma: no cover
                 pass
 
     def _route_get(self):
         parsed = urlparse(self.path)
         path = parsed.path
         params = parse_qs(parsed.query)
+
+        # 0. API: Options Intelligence Endpoints
+        if path.startswith("/api/options/"):
+            OptionsApiRouter.handle_get(self, path, params)
+            return
 
         # 1. API: Option Chain Data
         if path == "/api/option-chain":
@@ -485,10 +514,11 @@ def run_server(port: int = 8080, host: str = "127.0.0.1", open_browser: bool = F
     httpd = ThreadingHTTPServer(server_address, OptionChainHandler)
 
     print("\n" + "=" * 70)
-    print("   NSE INDIA OPTION CHAIN QUANTITATIVE ANALYTICS TERMINAL")
+    print("   NSE INDIA OPTIONS STRATEGY INTELLIGENCE & ANALYTICS TERMINAL")
     print("=" * 70)
     print(f" -> Local Web UI : http://{host}:{port}/")
-    print(f" -> API Endpoint : http://{host}:{port}/api/option-chain?symbol=NIFTY")
+    print(f" -> Option Chain : http://{host}:{port}/api/option-chain?symbol=NIFTY")
+    print(f" -> Strategy API : http://{host}:{port}/api/options/market-summary?symbol=NIFTY")
     print(f" -> Live Status  : http://{host}:{port}/api/market-status")
     print("=" * 70)
     print(" Press Ctrl+C to terminate the web server.\n")
@@ -510,13 +540,22 @@ def run_server(port: int = 8080, host: str = "127.0.0.1", open_browser: bool = F
         httpd.server_close()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import argparse
 
-    parser = argparse.ArgumentParser(description="Run the Option Chain Web UI Server")
-    parser.add_argument("--port", type=int, default=8080, help="Port to bind the server")
-    parser.add_argument("--host", type=str, default="127.0.0.1", help="Host IP address")
+    parser = argparse.ArgumentParser(description="Run the Option Chain & Strategy Intelligence Web UI Server")
+    parser.add_argument("--port", type=int, default=8080, help="Port to bind the server (default: 8080)")
+    parser.add_argument("--host", type=str, default="127.0.0.1", help="Host IP address (default: 127.0.0.1)")
+    parser.add_argument("--provider", type=str, choices=["sample", "nse"], default=None,
+                        help="Default market data provider ('sample' or 'nse')")
     parser.add_argument("--open", action="store_true", help="Automatically launch web browser on startup")
+    parser.add_argument("--no-browser", action="store_true", help="Do not automatically launch web browser")
     args = parser.parse_args()
 
-    run_server(port=args.port, host=args.host, open_browser=args.open)
+    if args.provider:
+        from config.settings import settings
+        settings.active_data_provider = args.provider
+        logger.info("Active Market Data Provider set via CLI: %s", args.provider.upper())
+
+    should_open = args.open and not args.no_browser
+    run_server(port=args.port, host=args.host, open_browser=should_open)
